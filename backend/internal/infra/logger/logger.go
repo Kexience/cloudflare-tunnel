@@ -53,3 +53,11 @@ func (l Logger) Error(msg string, args ...any) {
 func (l Logger) Sync() error {
 	return l.sugar.Sync()
 }
+
+func NewLoggerForTest() (Logger, error) {
+	zapLogger, err := zap.NewDevelopment()
+	if err != nil {
+		return Logger{}, err
+	}
+	return Logger{sugar: zapLogger.Sugar()}, nil
+}
