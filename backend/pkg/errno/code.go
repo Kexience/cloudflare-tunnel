@@ -13,6 +13,10 @@ var (
 	ErrDB       = &Errno{Code: 10003, Message: "数据库错误"}
 	ErrNotFound = &Errno{Code: 10004, Message: "资源不存在"}
 
+	// 认证模块
+	ErrUnauthorized = &Errno{Code: 10005, Message: "未登录或Token已过期"}
+	ErrTokenInvalid = &Errno{Code: 10006, Message: "Token无效"}
+
 	// 用户模块
 	ErrUserNotFound = &Errno{Code: 20001, Message: "用户不存在"}
 	ErrUserExists   = &Errno{Code: 20002, Message: "用户已存在"}

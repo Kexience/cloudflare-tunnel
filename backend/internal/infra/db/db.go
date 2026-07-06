@@ -7,6 +7,7 @@ import (
 	"context"
 	"fmt"
 
+	_ "github.com/mattn/go-sqlite3"
 	"go.uber.org/fx"
 )
 
