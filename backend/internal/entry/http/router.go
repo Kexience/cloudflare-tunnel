@@ -10,6 +10,7 @@ import (
 
 func NewRouter(cfg *config.Config, userRepo *api.Router) *gin.Engine {
 	if cfg.App.Env == "dev" {
+		gin.ForceConsoleColor()
 		gin.SetMode(gin.DebugMode)
 	}
 
