@@ -4,6 +4,7 @@ import (
 	"cloudflared-tunnel/internal/config"
 	httpEntry "cloudflared-tunnel/internal/entry/http"
 	"cloudflared-tunnel/internal/infra"
+	"cloudflared-tunnel/internal/infra/logger"
 	"cloudflared-tunnel/internal/module"
 	"context"
 	"flag"
@@ -27,10 +28,11 @@ func main() {
 	).Run()
 }
 
-func StartHttpServer(lc fx.Lifecycle, cfg *config.Config, g *gin.Engine) {
+func StartHttpServer(lc fx.Lifecycle, cfg *config.Config, g *gin.Engine, log logger.Logger) {
 	lc.Append(fx.Hook{
 		OnStart: func(ctx context.Context) error {
 			host := fmt.Sprintf("%s:%v", "0.0.0.0", cfg.App.Port)
+			log.Info("开始监听", "host", host)
 			go g.Run(host)
 			return nil
 		},

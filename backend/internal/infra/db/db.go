@@ -3,14 +3,14 @@ package db
 import (
 	"cloudflared-tunnel/ent"
 	"cloudflared-tunnel/internal/config"
+	"cloudflared-tunnel/internal/infra/logger"
 	"context"
 	"fmt"
 
 	"go.uber.org/fx"
-	"go.uber.org/zap"
 )
 
-func NewClient(lc fx.Lifecycle, cfg *config.Config, logger *zap.Logger) (*ent.Client, error) {
+func NewClient(lc fx.Lifecycle, cfg *config.Config, log logger.Logger) (*ent.Client, error) {
 	dbCfg := cfg.DB
 	if dbCfg.Driver == "" {
 		dbCfg.Driver = "sqlite3"
@@ -26,14 +26,14 @@ func NewClient(lc fx.Lifecycle, cfg *config.Config, logger *zap.Logger) (*ent.Cl
 
 	lc.Append(fx.Hook{
 		OnStart: func(ctx context.Context) error {
-			logger.Info("Running database migrations")
+			log.Info("Running database migrations")
 			if err := client.Schema.Create(ctx); err != nil {
 				return fmt.Errorf("failed creating schema resources: %w", err)
 			}
 			return nil
 		},
 		OnStop: func(ctx context.Context) error {
-			logger.Info("Closing database connection")
+			log.Info("Closing database connection")
 			return client.Close()
 		},
 	})
