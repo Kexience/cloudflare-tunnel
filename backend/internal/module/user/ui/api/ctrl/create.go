@@ -1,7 +1,23 @@
 package ctrl
 
-import "github.com/gin-gonic/gin"
+import (
+	v1 "cloudflared-tunnel/internal/module/user/ui/api/req/v1"
+	"cloudflared-tunnel/pkg/core"
+	"cloudflared-tunnel/pkg/errno"
+
+	"github.com/gin-gonic/gin"
+)
 
 func (c *Ctrl) CreateUser(ctx *gin.Context) {
+	var req v1.CreateRequest
+	if err := ctx.ShouldBindJSON(&req); err != nil {
+		core.Fail(ctx, errno.ErrParam)
+		return
+	}
 
+	if _, err := c.UserSvc.Register(req.Nickname, req.Username, req.Password, req.Email); err != nil {
+		core.Fail(ctx, err)
+		return
+	}
+	core.OK(ctx, nil)
 }
