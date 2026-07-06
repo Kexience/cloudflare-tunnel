@@ -3,6 +3,7 @@ package main
 import (
 	"cloudflared-tunnel/internal/config"
 	httpEntry "cloudflared-tunnel/internal/entry/http"
+	"cloudflared-tunnel/internal/module"
 	"context"
 	"flag"
 	"fmt"
@@ -18,6 +19,7 @@ func main() {
 
 	fx.New(
 		config.NewConfigModule(path),
+		module.Module,
 		httpEntry.NewHttpModule(),
 		fx.Invoke(StartHttpServer),
 	).Run()
