@@ -1,0 +1,103 @@
+# === Go ===
+# Compiled binaries
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+*.out
+
+# Test binary, built with `go test -c`
+*.test
+
+# Output of the go coverage tool
+*.prof
+
+# Go workspace file
+go.work
+
+# Dependency directories
+vendor/
+
+# === Vite ===
+# Vite build output
+dist/
+dist-ssr/
+*.local
+
+# === npm ===
+# npm dependencies
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# npm build output
+.npm
+.eslintcache
+.stylelintcache
+
+# === Bun ===
+# Bun dependencies (uses node_modules)
+bun.lockb
+bun.lock
+
+# === macOS ===
+.DS_Store
+.AppleDouble
+.LSOverride
+Icon
+._*
+.Spotlight-V100
+.Trashes
+
+# === Windows ===
+Thumbs.db
+Thumbs.db:encryptable
+ehthumbs.db
+ehthumbs_vista.db
+*.stackdump
+[Dd]esktop.ini
+$RECYCLE.BIN/
+*.cab
+*.msi
+*.msix
+*.msm
+*.msp
+*.lnk
+
+# === Linux ===
+*~
+.fuse_hidden*
+.Trash-*
+.nfs*
+
+# === Zed ===
+.zed/
+
+# === VS Code ===
+.vscode/*
+!.vscode/settings.json
+!.vscode/tasks.json
+!.vscode/launch.json
+!.vscode/extensions.json
+!.vscode/*.code-snippets
+
+# Local History for VS Code
+.history/
+
+# Built Visual Studio Code Extensions
+*.vsix
+
+# === JetBrains ===
+# JetBrains IDEs (IntelliJ, GoLand, WebStorm, etc.)
+.idea/
+*.iml
+*.iws
+*.ipr
+out/
+.idea_modules/
+
+# === Project specific ===
+backend/config/config.yaml
