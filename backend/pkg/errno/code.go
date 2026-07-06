@@ -30,3 +30,13 @@ func (e *Errno) Error() string {
 func (e *Errno) WithMessage(msg string) *Errno {
 	return &Errno{Code: e.Code, Message: msg}
 }
+
+func Decode(err error) (int, string) {
+	if err == nil {
+		return 0, "成功"
+	}
+	if e, ok := err.(*Errno); ok {
+		return e.Code, e.Message
+	}
+	return 10002, err.Error()
+}
