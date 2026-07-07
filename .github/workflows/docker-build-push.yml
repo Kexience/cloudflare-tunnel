@@ -1,0 +1,72 @@
+name: 构建并推送 Docker 镜像
+
+on:
+  push:
+    branches:
+      - main
+      - master
+  pull_request:
+    branches:
+      - main
+      - master
+
+env:
+  DOCKERHUB_REPO: ${{ secrets.DOCKERHUB_USERNAME }}/cloudflared-tunnel-go
+  GHCR_REPO: ghcr.io/${{ github.repository }}
+
+jobs:
+  build-and-push:
+    name: 构建并推送
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+
+    steps:
+      - name: 检出代码
+        uses: actions/checkout@v4
+
+      - name: 设置 Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: 登录到 Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - name: 登录到 GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: 提取 Docker 元数据（标签、标签）
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: |
+            ${{ env.DOCKERHUB_REPO }}
+            ${{ env.GHCR_REPO }}
+          tags: |
+            type=ref,event=branch
+            type=ref,event=pr
+            type=semver,pattern={{version}}
+            type=sha
+
+      - name: 生成 JWT_SECRET
+        id: jwt
+        run: echo "secret=$(openssl rand -base64 32)" >> $GITHUB_OUTPUT
+
+      - name: 构建并推送 Docker 镜像
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          push: ${{ github.event_name != 'pull_request' }}
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          build-args: |
+            JWT_SECRET=${{ steps.jwt.outputs.secret }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
