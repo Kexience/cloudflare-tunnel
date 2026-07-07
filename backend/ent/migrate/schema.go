@@ -59,7 +59,7 @@ var (
 				Symbol:     "credential_test_logs_credentials_test_logs",
 				Columns:    []*schema.Column{CredentialTestLogsColumns[4]},
 				RefColumns: []*schema.Column{CredentialsColumns[0]},
-				OnDelete:   schema.NoAction,
+				OnDelete:   schema.Cascade,
 			},
 		},
 	}

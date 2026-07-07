@@ -95,7 +95,15 @@ func (r *Repo) UpdateCredential(id int64, name, encryptedToken, accountID string
 
 func (r *Repo) DeleteCredential(id, userID int64) error {
 	ctx := context.Background()
-	_, err := r.Client.Credential.Delete().
+	_, err := r.Client.CredentialTestLog.Delete().
+		Where(credentialtestlog.HasCredentialWith(credential.ID(id))).
+		Exec(ctx)
+	if err != nil {
+		r.Log.Error("删除凭证测试日志失败", "id", id, "error", err)
+		return err
+	}
+
+	_, err = r.Client.Credential.Delete().
 		Where(
 			credential.ID(id),
 			credential.HasOwnerWith(user.ID(userID)),

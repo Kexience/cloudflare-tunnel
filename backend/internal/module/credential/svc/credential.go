@@ -168,14 +168,6 @@ func (s *svc) UpdateCredential(userID, id int64, req *v1.UpdateCredentialRequest
 }
 
 func (s *svc) DeleteCredential(userID, id int64) error {
-	_, err := s.repo.GetCredentialByIDAndUserID(id, userID)
-	if err != nil {
-		if ent.IsNotFound(err) {
-			return errno.ErrCredentialNotFound
-		}
-		return errno.ErrDB
-	}
-
 	return s.repo.DeleteCredential(id, userID)
 }
 

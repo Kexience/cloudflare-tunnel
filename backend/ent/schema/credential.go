@@ -45,6 +45,7 @@ func (Credential) Edges() []ent.Edge {
 			Required().
 			Comment("所属用户"),
 		edge.To("test_logs", CredentialTestLog.Type).
+			Annotations(entsql.OnDelete(entsql.Cascade)).
 			Comment("测试日志"),
 	}
 }

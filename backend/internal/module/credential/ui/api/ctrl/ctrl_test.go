@@ -3,6 +3,7 @@ package ctrl_test
 import (
 	"bytes"
 	"encoding/json"
+	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -126,6 +127,78 @@ func TestValidateCredential(t *testing.T) {
 		assert.Equal(t, http.StatusOK, w.Code)
 		resp := parseResponse(t, w.Body)
 		assert.Equal(t, errno.ErrUnauthorized.Code, resp.Code)
+	})
+}
+
+func TestDeleteCredential(t *testing.T) {
+	container := testutil.NewPostgresContainer(t)
+	log := testutil.NewLogger(t)
+	secret := []byte("test-secret-key-32bytes-long!!!!")
+
+	credentialRepo := repo.NewCredentialRepo(container.Client, log)
+	validator := cloudflare.NewValidator()
+	credentialSvc := svc.NewCredentialSvc(credentialRepo, log, secret, validator)
+
+	user := container.InsertUser(t, "测试用户", "testuser", "password123", "test@example.com")
+
+	t.Run("删除凭证成功", func(t *testing.T) {
+		apiToken := "test-token"
+		encryptedToken, err := crypto.Encrypt(apiToken, secret)
+		require.NoError(t, err)
+
+		cred := container.InsertCredential(t, user.ID, "测试凭证", encryptedToken, "account-123", false)
+
+		r := setupRouter(credentialSvc)
+		token := generateToken(t)
+
+		req := httptest.NewRequest(http.MethodDelete, "/v1/credentials/"+fmt.Sprintf("%d", cred.ID), nil)
+		req.Header.Set("Authorization", authHeader(token))
+		w := httptest.NewRecorder()
+
+		r.ServeHTTP(w, req)
+
+		assert.Equal(t, http.StatusOK, w.Code)
+		resp := parseResponse(t, w.Body)
+		assert.Equal(t, 0, resp.Code)
+	})
+
+	t.Run("删除凭证及测试日志", func(t *testing.T) {
+		apiToken := "test-token-2"
+		encryptedToken, err := crypto.Encrypt(apiToken, secret)
+		require.NoError(t, err)
+
+		cred := container.InsertCredential(t, user.ID, "测试凭证2", encryptedToken, "account-456", false)
+
+		_, err = credentialRepo.CreateTestLog(cred.ID, "success", nil)
+		require.NoError(t, err)
+
+		r := setupRouter(credentialSvc)
+		token := generateToken(t)
+
+		req := httptest.NewRequest(http.MethodDelete, "/v1/credentials/"+fmt.Sprintf("%d", cred.ID), nil)
+		req.Header.Set("Authorization", authHeader(token))
+		w := httptest.NewRecorder()
+
+		r.ServeHTTP(w, req)
+
+		assert.Equal(t, http.StatusOK, w.Code)
+		resp := parseResponse(t, w.Body)
+		assert.Equal(t, 0, resp.Code)
+	})
+
+	t.Run("ID 格式无效", func(t *testing.T) {
+		r := setupRouter(credentialSvc)
+		token := generateToken(t)
+
+		req := httptest.NewRequest(http.MethodDelete, "/v1/credentials/abc", nil)
+		req.Header.Set("Authorization", authHeader(token))
+		w := httptest.NewRecorder()
+
+		r.ServeHTTP(w, req)
+
+		assert.Equal(t, http.StatusOK, w.Code)
+		resp := parseResponse(t, w.Body)
+		assert.Equal(t, errno.ErrParam.Code, resp.Code)
 	})
 }
 
