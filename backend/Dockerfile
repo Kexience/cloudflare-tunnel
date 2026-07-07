@@ -1,9 +1,6 @@
 # 后端服务镜像
-FROM --platform=$BUILDPLATFORM golang:1.26-alpine AS builder
+FROM golang:1.23-alpine AS builder
 WORKDIR /app
-
-ARG TARGETARCH
-ARG TARGETOS
 
 # 安装依赖工具
 RUN apk add --no-cache bash curl tar gcc musl-dev
@@ -16,11 +13,10 @@ RUN go mod download
 COPY . .
 
 # 下载对应架构的 cloudflared
-RUN chmod +x scripts/download-cloudflared.sh && \
-    ARCH=${TARGETARCH} ./scripts/download-cloudflared.sh
+RUN chmod +x scripts/download-cloudflared.sh && ./scripts/download-cloudflared.sh
 
-# Go 交叉编译
-RUN CGO_ENABLED=1 GOOS=${TARGETOS} GOARCH=${TARGETARCH} go build -o /dist/server cmd/web/main.go
+# 编译
+RUN CGO_ENABLED=1 go build -o /dist/server cmd/web/main.go
 
 # 最终镜像
 FROM alpine:latest
