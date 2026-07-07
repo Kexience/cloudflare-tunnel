@@ -6,9 +6,19 @@ WORKDIR /app
 ARG VITE_API_BASE_URL=/api
 ENV VITE_API_BASE_URL=${VITE_API_BASE_URL}
 
-COPY package.json bun.lock ./
-RUN npm install -g bun && bun install
+# 安装 bun
+RUN npm install -g bun
+
+# 复制依赖文件
+COPY package.json ./
+
+# 安装依赖
+RUN bun install
+
+# 复制源码
 COPY . .
+
+# 构建
 RUN bun run build
 
 # Nginx 镜像
