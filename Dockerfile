@@ -17,9 +17,9 @@ WORKDIR /app/backend
 COPY backend/go.mod backend/go.sum ./
 RUN go mod download
 COPY backend/ .
-RUN apk add --no-cache bash curl tar
+RUN apk add --no-cache bash curl tar gcc musl-dev
 RUN chmod +x scripts/download-cloudflared.sh && ./scripts/download-cloudflared.sh
-RUN CGO_ENABLED=0 GOOS=linux go build -o /dist/server cmd/web/main.go
+RUN CGO_ENABLED=1 GOOS=linux go build -o /dist/server cmd/web/main.go
 
 # 最终镜像
 FROM alpine:latest

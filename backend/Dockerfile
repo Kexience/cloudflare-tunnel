@@ -6,7 +6,7 @@ ARG TARGETARCH
 ARG TARGETOS
 
 # 安装依赖工具
-RUN apk add --no-cache bash curl tar
+RUN apk add --no-cache bash curl tar gcc musl-dev
 
 # 下载依赖
 COPY go.mod go.sum ./
@@ -20,7 +20,7 @@ RUN chmod +x scripts/download-cloudflared.sh && \
     ARCH=${TARGETARCH} ./scripts/download-cloudflared.sh
 
 # Go 交叉编译
-RUN CGO_ENABLED=0 GOOS=${TARGETOS} GOARCH=${TARGETARCH} go build -o /dist/server cmd/web/main.go
+RUN CGO_ENABLED=1 GOOS=${TARGETOS} GOARCH=${TARGETARCH} go build -o /dist/server cmd/web/main.go
 
 # 最终镜像
 FROM alpine:latest
