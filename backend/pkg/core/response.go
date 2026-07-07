@@ -39,7 +39,8 @@ func OKList(c *gin.Context, list any, total int64) {
 // Fail 错误响应
 func Fail(c *gin.Context, err error) {
 	code, message := errno.Decode(err)
-	c.JSON(http.StatusOK, Response{
+	httpStatus := errno.HTTPStatus(err)
+	c.JSON(httpStatus, Response{
 		Code:    code,
 		Message: message,
 	})
@@ -48,7 +49,8 @@ func Fail(c *gin.Context, err error) {
 // FailMsg 自定义错误消息
 func FailMsg(c *gin.Context, err error, msg string) {
 	code, _ := errno.Decode(err)
-	c.JSON(http.StatusOK, Response{
+	httpStatus := errno.HTTPStatus(err)
+	c.JSON(httpStatus, Response{
 		Code:    code,
 		Message: msg,
 	})

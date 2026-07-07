@@ -1,5 +1,7 @@
 package errno
 
+import "net/http"
+
 // 业务错误码定义
 // 格式：模块前缀 + 错误编号
 // 100xx - 通用错误
@@ -75,5 +77,22 @@ func Decode(err error) (int, string) {
 	if e, ok := err.(*Errno); ok {
 		return e.Code, e.Message
 	}
-	return 10002, err.Error()
+	return 10002, "内部错误"
+}
+
+// HTTPStatus 根据业务错误码返回对应的 HTTP 状态码
+func HTTPStatus(err error) int {
+	if e, ok := err.(*Errno); ok {
+		switch e.Code {
+		case 10005, 10006: // 认证相关
+			return http.StatusUnauthorized
+		case 10001: // 参数错误
+			return http.StatusBadRequest
+		case 10004, 20001, 30001, 40001, 50001: // 资源不存在
+			return http.StatusNotFound
+		case 20002, 30002: // 资源已存在
+			return http.StatusConflict
+		}
+	}
+	return http.StatusInternalServerError
 }
