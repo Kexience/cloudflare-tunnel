@@ -357,6 +357,29 @@ func HasCredentialsWith(preds ...predicate.Credential) predicate.User {
 	})
 }
 
+// HasTrafficLogs applies the HasEdge predicate on the "traffic_logs" edge.
+func HasTrafficLogs() predicate.User {
+	return predicate.User(func(s *sql.Selector) {
+		step := sqlgraph.NewStep(
+			sqlgraph.From(Table, FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, TrafficLogsTable, TrafficLogsColumn),
+		)
+		sqlgraph.HasNeighbors(s, step)
+	})
+}
+
+// HasTrafficLogsWith applies the HasEdge predicate on the "traffic_logs" edge with a given conditions (other predicates).
+func HasTrafficLogsWith(preds ...predicate.TunnelTrafficLog) predicate.User {
+	return predicate.User(func(s *sql.Selector) {
+		step := newTrafficLogsStep()
+		sqlgraph.HasNeighborsWith(s, step, func(s *sql.Selector) {
+			for _, p := range preds {
+				p(s)
+			}
+		})
+	})
+}
+
 // And groups predicates with the AND operator between them.
 func And(predicates ...predicate.User) predicate.User {
 	return predicate.User(sql.AndPredicates(predicates...))

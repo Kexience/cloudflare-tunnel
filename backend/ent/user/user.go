@@ -22,6 +22,8 @@ const (
 	FieldEmail = "email"
 	// EdgeCredentials holds the string denoting the credentials edge name in mutations.
 	EdgeCredentials = "credentials"
+	// EdgeTrafficLogs holds the string denoting the traffic_logs edge name in mutations.
+	EdgeTrafficLogs = "traffic_logs"
 	// Table holds the table name of the user in the database.
 	Table = "users"
 	// CredentialsTable is the table that holds the credentials relation/edge.
@@ -31,6 +33,13 @@ const (
 	CredentialsInverseTable = "credentials"
 	// CredentialsColumn is the table column denoting the credentials relation/edge.
 	CredentialsColumn = "user_credentials"
+	// TrafficLogsTable is the table that holds the traffic_logs relation/edge.
+	TrafficLogsTable = "tunnel_traffic_logs"
+	// TrafficLogsInverseTable is the table name for the TunnelTrafficLog entity.
+	// It exists in this package in order to avoid circular dependency with the "tunneltrafficlog" package.
+	TrafficLogsInverseTable = "tunnel_traffic_logs"
+	// TrafficLogsColumn is the table column denoting the traffic_logs relation/edge.
+	TrafficLogsColumn = "user_traffic_logs"
 )
 
 // Columns holds all SQL columns for user fields.
@@ -106,10 +115,31 @@ func ByCredentials(term sql.OrderTerm, terms ...sql.OrderTerm) OrderOption {
 		sqlgraph.OrderByNeighborTerms(s, newCredentialsStep(), append([]sql.OrderTerm{term}, terms...)...)
 	}
 }
+
+// ByTrafficLogsCount orders the results by traffic_logs count.
+func ByTrafficLogsCount(opts ...sql.OrderTermOption) OrderOption {
+	return func(s *sql.Selector) {
+		sqlgraph.OrderByNeighborsCount(s, newTrafficLogsStep(), opts...)
+	}
+}
+
+// ByTrafficLogs orders the results by traffic_logs terms.
+func ByTrafficLogs(term sql.OrderTerm, terms ...sql.OrderTerm) OrderOption {
+	return func(s *sql.Selector) {
+		sqlgraph.OrderByNeighborTerms(s, newTrafficLogsStep(), append([]sql.OrderTerm{term}, terms...)...)
+	}
+}
 func newCredentialsStep() *sqlgraph.Step {
 	return sqlgraph.NewStep(
 		sqlgraph.From(Table, FieldID),
 		sqlgraph.To(CredentialsInverseTable, FieldID),
 		sqlgraph.Edge(sqlgraph.O2M, false, CredentialsTable, CredentialsColumn),
+	)
+}
+func newTrafficLogsStep() *sqlgraph.Step {
+	return sqlgraph.NewStep(
+		sqlgraph.From(Table, FieldID),
+		sqlgraph.To(TrafficLogsInverseTable, FieldID),
+		sqlgraph.Edge(sqlgraph.O2M, false, TrafficLogsTable, TrafficLogsColumn),
 	)
 }

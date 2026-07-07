@@ -6,6 +6,7 @@ import (
 	"cloudflared-tunnel/ent/credential"
 	"cloudflared-tunnel/ent/credentialtestlog"
 	"cloudflared-tunnel/ent/predicate"
+	"cloudflared-tunnel/ent/tunneltrafficlog"
 	"cloudflared-tunnel/ent/user"
 	"context"
 	"errors"
@@ -28,6 +29,7 @@ const (
 	// Node types.
 	TypeCredential        = "Credential"
 	TypeCredentialTestLog = "CredentialTestLog"
+	TypeTunnelTrafficLog  = "TunnelTrafficLog"
 	TypeUser              = "User"
 )
 
@@ -1314,23 +1316,743 @@ func (m *CredentialTestLogMutation) ResetEdge(name string) error {
 	return fmt.Errorf("unknown CredentialTestLog edge %s", name)
 }
 
+// TunnelTrafficLogMutation represents an operation that mutates the TunnelTrafficLog nodes in the graph.
+type TunnelTrafficLogMutation struct {
+	config
+	op                Op
+	typ               string
+	id                *int64
+	tunnel_id         *string
+	bytes_in          *int64
+	addbytes_in       *int64
+	bytes_out         *int64
+	addbytes_out      *int64
+	total_requests    *int64
+	addtotal_requests *int64
+	recorded_at       *time.Time
+	clearedFields     map[string]struct{}
+	user              *int64
+	cleareduser       bool
+	done              bool
+	oldValue          func(context.Context) (*TunnelTrafficLog, error)
+	predicates        []predicate.TunnelTrafficLog
+}
+
+var _ ent.Mutation = (*TunnelTrafficLogMutation)(nil)
+
+// tunneltrafficlogOption allows management of the mutation configuration using functional options.
+type tunneltrafficlogOption func(*TunnelTrafficLogMutation)
+
+// newTunnelTrafficLogMutation creates new mutation for the TunnelTrafficLog entity.
+func newTunnelTrafficLogMutation(c config, op Op, opts ...tunneltrafficlogOption) *TunnelTrafficLogMutation {
+	m := &TunnelTrafficLogMutation{
+		config:        c,
+		op:            op,
+		typ:           TypeTunnelTrafficLog,
+		clearedFields: make(map[string]struct{}),
+	}
+	for _, opt := range opts {
+		opt(m)
+	}
+	return m
+}
+
+// withTunnelTrafficLogID sets the ID field of the mutation.
+func withTunnelTrafficLogID(id int64) tunneltrafficlogOption {
+	return func(m *TunnelTrafficLogMutation) {
+		var (
+			err   error
+			once  sync.Once
+			value *TunnelTrafficLog
+		)
+		m.oldValue = func(ctx context.Context) (*TunnelTrafficLog, error) {
+			once.Do(func() {
+				if m.done {
+					err = errors.New("querying old values post mutation is not allowed")
+				} else {
+					value, err = m.Client().TunnelTrafficLog.Get(ctx, id)
+				}
+			})
+			return value, err
+		}
+		m.id = &id
+	}
+}
+
+// withTunnelTrafficLog sets the old TunnelTrafficLog of the mutation.
+func withTunnelTrafficLog(node *TunnelTrafficLog) tunneltrafficlogOption {
+	return func(m *TunnelTrafficLogMutation) {
+		m.oldValue = func(context.Context) (*TunnelTrafficLog, error) {
+			return node, nil
+		}
+		m.id = &node.ID
+	}
+}
+
+// Client returns a new `ent.Client` from the mutation. If the mutation was
+// executed in a transaction (ent.Tx), a transactional client is returned.
+func (m TunnelTrafficLogMutation) Client() *Client {
+	client := &Client{config: m.config}
+	client.init()
+	return client
+}
+
+// Tx returns an `ent.Tx` for mutations that were executed in transactions;
+// it returns an error otherwise.
+func (m TunnelTrafficLogMutation) Tx() (*Tx, error) {
+	if _, ok := m.driver.(*txDriver); !ok {
+		return nil, errors.New("ent: mutation is not running in a transaction")
+	}
+	tx := &Tx{config: m.config}
+	tx.init()
+	return tx, nil
+}
+
+// SetID sets the value of the id field. Note that this
+// operation is only accepted on creation of TunnelTrafficLog entities.
+func (m *TunnelTrafficLogMutation) SetID(id int64) {
+	m.id = &id
+}
+
+// ID returns the ID value in the mutation. Note that the ID is only available
+// if it was provided to the builder or after it was returned from the database.
+func (m *TunnelTrafficLogMutation) ID() (id int64, exists bool) {
+	if m.id == nil {
+		return
+	}
+	return *m.id, true
+}
+
+// IDs queries the database and returns the entity ids that match the mutation's predicate.
+// That means, if the mutation is applied within a transaction with an isolation level such
+// as sql.LevelSerializable, the returned ids match the ids of the rows that will be updated
+// or updated by the mutation.
+func (m *TunnelTrafficLogMutation) IDs(ctx context.Context) ([]int64, error) {
+	switch {
+	case m.op.Is(OpUpdateOne | OpDeleteOne):
+		id, exists := m.ID()
+		if exists {
+			return []int64{id}, nil
+		}
+		fallthrough
+	case m.op.Is(OpUpdate | OpDelete):
+		return m.Client().TunnelTrafficLog.Query().Where(m.predicates...).IDs(ctx)
+	default:
+		return nil, fmt.Errorf("IDs is not allowed on %s operations", m.op)
+	}
+}
+
+// SetTunnelID sets the "tunnel_id" field.
+func (m *TunnelTrafficLogMutation) SetTunnelID(s string) {
+	m.tunnel_id = &s
+}
+
+// TunnelID returns the value of the "tunnel_id" field in the mutation.
+func (m *TunnelTrafficLogMutation) TunnelID() (r string, exists bool) {
+	v := m.tunnel_id
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldTunnelID returns the old "tunnel_id" field's value of the TunnelTrafficLog entity.
+// If the TunnelTrafficLog object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *TunnelTrafficLogMutation) OldTunnelID(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldTunnelID is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldTunnelID requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldTunnelID: %w", err)
+	}
+	return oldValue.TunnelID, nil
+}
+
+// ResetTunnelID resets all changes to the "tunnel_id" field.
+func (m *TunnelTrafficLogMutation) ResetTunnelID() {
+	m.tunnel_id = nil
+}
+
+// SetBytesIn sets the "bytes_in" field.
+func (m *TunnelTrafficLogMutation) SetBytesIn(i int64) {
+	m.bytes_in = &i
+	m.addbytes_in = nil
+}
+
+// BytesIn returns the value of the "bytes_in" field in the mutation.
+func (m *TunnelTrafficLogMutation) BytesIn() (r int64, exists bool) {
+	v := m.bytes_in
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldBytesIn returns the old "bytes_in" field's value of the TunnelTrafficLog entity.
+// If the TunnelTrafficLog object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *TunnelTrafficLogMutation) OldBytesIn(ctx context.Context) (v int64, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldBytesIn is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldBytesIn requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldBytesIn: %w", err)
+	}
+	return oldValue.BytesIn, nil
+}
+
+// AddBytesIn adds i to the "bytes_in" field.
+func (m *TunnelTrafficLogMutation) AddBytesIn(i int64) {
+	if m.addbytes_in != nil {
+		*m.addbytes_in += i
+	} else {
+		m.addbytes_in = &i
+	}
+}
+
+// AddedBytesIn returns the value that was added to the "bytes_in" field in this mutation.
+func (m *TunnelTrafficLogMutation) AddedBytesIn() (r int64, exists bool) {
+	v := m.addbytes_in
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// ResetBytesIn resets all changes to the "bytes_in" field.
+func (m *TunnelTrafficLogMutation) ResetBytesIn() {
+	m.bytes_in = nil
+	m.addbytes_in = nil
+}
+
+// SetBytesOut sets the "bytes_out" field.
+func (m *TunnelTrafficLogMutation) SetBytesOut(i int64) {
+	m.bytes_out = &i
+	m.addbytes_out = nil
+}
+
+// BytesOut returns the value of the "bytes_out" field in the mutation.
+func (m *TunnelTrafficLogMutation) BytesOut() (r int64, exists bool) {
+	v := m.bytes_out
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldBytesOut returns the old "bytes_out" field's value of the TunnelTrafficLog entity.
+// If the TunnelTrafficLog object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *TunnelTrafficLogMutation) OldBytesOut(ctx context.Context) (v int64, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldBytesOut is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldBytesOut requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldBytesOut: %w", err)
+	}
+	return oldValue.BytesOut, nil
+}
+
+// AddBytesOut adds i to the "bytes_out" field.
+func (m *TunnelTrafficLogMutation) AddBytesOut(i int64) {
+	if m.addbytes_out != nil {
+		*m.addbytes_out += i
+	} else {
+		m.addbytes_out = &i
+	}
+}
+
+// AddedBytesOut returns the value that was added to the "bytes_out" field in this mutation.
+func (m *TunnelTrafficLogMutation) AddedBytesOut() (r int64, exists bool) {
+	v := m.addbytes_out
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// ResetBytesOut resets all changes to the "bytes_out" field.
+func (m *TunnelTrafficLogMutation) ResetBytesOut() {
+	m.bytes_out = nil
+	m.addbytes_out = nil
+}
+
+// SetTotalRequests sets the "total_requests" field.
+func (m *TunnelTrafficLogMutation) SetTotalRequests(i int64) {
+	m.total_requests = &i
+	m.addtotal_requests = nil
+}
+
+// TotalRequests returns the value of the "total_requests" field in the mutation.
+func (m *TunnelTrafficLogMutation) TotalRequests() (r int64, exists bool) {
+	v := m.total_requests
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldTotalRequests returns the old "total_requests" field's value of the TunnelTrafficLog entity.
+// If the TunnelTrafficLog object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *TunnelTrafficLogMutation) OldTotalRequests(ctx context.Context) (v int64, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldTotalRequests is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldTotalRequests requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldTotalRequests: %w", err)
+	}
+	return oldValue.TotalRequests, nil
+}
+
+// AddTotalRequests adds i to the "total_requests" field.
+func (m *TunnelTrafficLogMutation) AddTotalRequests(i int64) {
+	if m.addtotal_requests != nil {
+		*m.addtotal_requests += i
+	} else {
+		m.addtotal_requests = &i
+	}
+}
+
+// AddedTotalRequests returns the value that was added to the "total_requests" field in this mutation.
+func (m *TunnelTrafficLogMutation) AddedTotalRequests() (r int64, exists bool) {
+	v := m.addtotal_requests
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// ResetTotalRequests resets all changes to the "total_requests" field.
+func (m *TunnelTrafficLogMutation) ResetTotalRequests() {
+	m.total_requests = nil
+	m.addtotal_requests = nil
+}
+
+// SetRecordedAt sets the "recorded_at" field.
+func (m *TunnelTrafficLogMutation) SetRecordedAt(t time.Time) {
+	m.recorded_at = &t
+}
+
+// RecordedAt returns the value of the "recorded_at" field in the mutation.
+func (m *TunnelTrafficLogMutation) RecordedAt() (r time.Time, exists bool) {
+	v := m.recorded_at
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldRecordedAt returns the old "recorded_at" field's value of the TunnelTrafficLog entity.
+// If the TunnelTrafficLog object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *TunnelTrafficLogMutation) OldRecordedAt(ctx context.Context) (v time.Time, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldRecordedAt is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldRecordedAt requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldRecordedAt: %w", err)
+	}
+	return oldValue.RecordedAt, nil
+}
+
+// ResetRecordedAt resets all changes to the "recorded_at" field.
+func (m *TunnelTrafficLogMutation) ResetRecordedAt() {
+	m.recorded_at = nil
+}
+
+// SetUserID sets the "user" edge to the User entity by id.
+func (m *TunnelTrafficLogMutation) SetUserID(id int64) {
+	m.user = &id
+}
+
+// ClearUser clears the "user" edge to the User entity.
+func (m *TunnelTrafficLogMutation) ClearUser() {
+	m.cleareduser = true
+}
+
+// UserCleared reports if the "user" edge to the User entity was cleared.
+func (m *TunnelTrafficLogMutation) UserCleared() bool {
+	return m.cleareduser
+}
+
+// UserID returns the "user" edge ID in the mutation.
+func (m *TunnelTrafficLogMutation) UserID() (id int64, exists bool) {
+	if m.user != nil {
+		return *m.user, true
+	}
+	return
+}
+
+// UserIDs returns the "user" edge IDs in the mutation.
+// Note that IDs always returns len(IDs) <= 1 for unique edges, and you should use
+// UserID instead. It exists only for internal usage by the builders.
+func (m *TunnelTrafficLogMutation) UserIDs() (ids []int64) {
+	if id := m.user; id != nil {
+		ids = append(ids, *id)
+	}
+	return
+}
+
+// ResetUser resets all changes to the "user" edge.
+func (m *TunnelTrafficLogMutation) ResetUser() {
+	m.user = nil
+	m.cleareduser = false
+}
+
+// Where appends a list predicates to the TunnelTrafficLogMutation builder.
+func (m *TunnelTrafficLogMutation) Where(ps ...predicate.TunnelTrafficLog) {
+	m.predicates = append(m.predicates, ps...)
+}
+
+// WhereP appends storage-level predicates to the TunnelTrafficLogMutation builder. Using this method,
+// users can use type-assertion to append predicates that do not depend on any generated package.
+func (m *TunnelTrafficLogMutation) WhereP(ps ...func(*sql.Selector)) {
+	p := make([]predicate.TunnelTrafficLog, len(ps))
+	for i := range ps {
+		p[i] = ps[i]
+	}
+	m.Where(p...)
+}
+
+// Op returns the operation name.
+func (m *TunnelTrafficLogMutation) Op() Op {
+	return m.op
+}
+
+// SetOp allows setting the mutation operation.
+func (m *TunnelTrafficLogMutation) SetOp(op Op) {
+	m.op = op
+}
+
+// Type returns the node type of this mutation (TunnelTrafficLog).
+func (m *TunnelTrafficLogMutation) Type() string {
+	return m.typ
+}
+
+// Fields returns all fields that were changed during this mutation. Note that in
+// order to get all numeric fields that were incremented/decremented, call
+// AddedFields().
+func (m *TunnelTrafficLogMutation) Fields() []string {
+	fields := make([]string, 0, 5)
+	if m.tunnel_id != nil {
+		fields = append(fields, tunneltrafficlog.FieldTunnelID)
+	}
+	if m.bytes_in != nil {
+		fields = append(fields, tunneltrafficlog.FieldBytesIn)
+	}
+	if m.bytes_out != nil {
+		fields = append(fields, tunneltrafficlog.FieldBytesOut)
+	}
+	if m.total_requests != nil {
+		fields = append(fields, tunneltrafficlog.FieldTotalRequests)
+	}
+	if m.recorded_at != nil {
+		fields = append(fields, tunneltrafficlog.FieldRecordedAt)
+	}
+	return fields
+}
+
+// Field returns the value of a field with the given name. The second boolean
+// return value indicates that this field was not set, or was not defined in the
+// schema.
+func (m *TunnelTrafficLogMutation) Field(name string) (ent.Value, bool) {
+	switch name {
+	case tunneltrafficlog.FieldTunnelID:
+		return m.TunnelID()
+	case tunneltrafficlog.FieldBytesIn:
+		return m.BytesIn()
+	case tunneltrafficlog.FieldBytesOut:
+		return m.BytesOut()
+	case tunneltrafficlog.FieldTotalRequests:
+		return m.TotalRequests()
+	case tunneltrafficlog.FieldRecordedAt:
+		return m.RecordedAt()
+	}
+	return nil, false
+}
+
+// OldField returns the old value of the field from the database. An error is
+// returned if the mutation operation is not UpdateOne, or the query to the
+// database failed.
+func (m *TunnelTrafficLogMutation) OldField(ctx context.Context, name string) (ent.Value, error) {
+	switch name {
+	case tunneltrafficlog.FieldTunnelID:
+		return m.OldTunnelID(ctx)
+	case tunneltrafficlog.FieldBytesIn:
+		return m.OldBytesIn(ctx)
+	case tunneltrafficlog.FieldBytesOut:
+		return m.OldBytesOut(ctx)
+	case tunneltrafficlog.FieldTotalRequests:
+		return m.OldTotalRequests(ctx)
+	case tunneltrafficlog.FieldRecordedAt:
+		return m.OldRecordedAt(ctx)
+	}
+	return nil, fmt.Errorf("unknown TunnelTrafficLog field %s", name)
+}
+
+// SetField sets the value of a field with the given name. It returns an error if
+// the field is not defined in the schema, or if the type mismatched the field
+// type.
+func (m *TunnelTrafficLogMutation) SetField(name string, value ent.Value) error {
+	switch name {
+	case tunneltrafficlog.FieldTunnelID:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetTunnelID(v)
+		return nil
+	case tunneltrafficlog.FieldBytesIn:
+		v, ok := value.(int64)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetBytesIn(v)
+		return nil
+	case tunneltrafficlog.FieldBytesOut:
+		v, ok := value.(int64)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetBytesOut(v)
+		return nil
+	case tunneltrafficlog.FieldTotalRequests:
+		v, ok := value.(int64)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetTotalRequests(v)
+		return nil
+	case tunneltrafficlog.FieldRecordedAt:
+		v, ok := value.(time.Time)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetRecordedAt(v)
+		return nil
+	}
+	return fmt.Errorf("unknown TunnelTrafficLog field %s", name)
+}
+
+// AddedFields returns all numeric fields that were incremented/decremented during
+// this mutation.
+func (m *TunnelTrafficLogMutation) AddedFields() []string {
+	var fields []string
+	if m.addbytes_in != nil {
+		fields = append(fields, tunneltrafficlog.FieldBytesIn)
+	}
+	if m.addbytes_out != nil {
+		fields = append(fields, tunneltrafficlog.FieldBytesOut)
+	}
+	if m.addtotal_requests != nil {
+		fields = append(fields, tunneltrafficlog.FieldTotalRequests)
+	}
+	return fields
+}
+
+// AddedField returns the numeric value that was incremented/decremented on a field
+// with the given name. The second boolean return value indicates that this field
+// was not set, or was not defined in the schema.
+func (m *TunnelTrafficLogMutation) AddedField(name string) (ent.Value, bool) {
+	switch name {
+	case tunneltrafficlog.FieldBytesIn:
+		return m.AddedBytesIn()
+	case tunneltrafficlog.FieldBytesOut:
+		return m.AddedBytesOut()
+	case tunneltrafficlog.FieldTotalRequests:
+		return m.AddedTotalRequests()
+	}
+	return nil, false
+}
+
+// AddField adds the value to the field with the given name. It returns an error if
+// the field is not defined in the schema, or if the type mismatched the field
+// type.
+func (m *TunnelTrafficLogMutation) AddField(name string, value ent.Value) error {
+	switch name {
+	case tunneltrafficlog.FieldBytesIn:
+		v, ok := value.(int64)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.AddBytesIn(v)
+		return nil
+	case tunneltrafficlog.FieldBytesOut:
+		v, ok := value.(int64)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.AddBytesOut(v)
+		return nil
+	case tunneltrafficlog.FieldTotalRequests:
+		v, ok := value.(int64)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.AddTotalRequests(v)
+		return nil
+	}
+	return fmt.Errorf("unknown TunnelTrafficLog numeric field %s", name)
+}
+
+// ClearedFields returns all nullable fields that were cleared during this
+// mutation.
+func (m *TunnelTrafficLogMutation) ClearedFields() []string {
+	return nil
+}
+
+// FieldCleared returns a boolean indicating if a field with the given name was
+// cleared in this mutation.
+func (m *TunnelTrafficLogMutation) FieldCleared(name string) bool {
+	_, ok := m.clearedFields[name]
+	return ok
+}
+
+// ClearField clears the value of the field with the given name. It returns an
+// error if the field is not defined in the schema.
+func (m *TunnelTrafficLogMutation) ClearField(name string) error {
+	return fmt.Errorf("unknown TunnelTrafficLog nullable field %s", name)
+}
+
+// ResetField resets all changes in the mutation for the field with the given name.
+// It returns an error if the field is not defined in the schema.
+func (m *TunnelTrafficLogMutation) ResetField(name string) error {
+	switch name {
+	case tunneltrafficlog.FieldTunnelID:
+		m.ResetTunnelID()
+		return nil
+	case tunneltrafficlog.FieldBytesIn:
+		m.ResetBytesIn()
+		return nil
+	case tunneltrafficlog.FieldBytesOut:
+		m.ResetBytesOut()
+		return nil
+	case tunneltrafficlog.FieldTotalRequests:
+		m.ResetTotalRequests()
+		return nil
+	case tunneltrafficlog.FieldRecordedAt:
+		m.ResetRecordedAt()
+		return nil
+	}
+	return fmt.Errorf("unknown TunnelTrafficLog field %s", name)
+}
+
+// AddedEdges returns all edge names that were set/added in this mutation.
+func (m *TunnelTrafficLogMutation) AddedEdges() []string {
+	edges := make([]string, 0, 1)
+	if m.user != nil {
+		edges = append(edges, tunneltrafficlog.EdgeUser)
+	}
+	return edges
+}
+
+// AddedIDs returns all IDs (to other nodes) that were added for the given edge
+// name in this mutation.
+func (m *TunnelTrafficLogMutation) AddedIDs(name string) []ent.Value {
+	switch name {
+	case tunneltrafficlog.EdgeUser:
+		if id := m.user; id != nil {
+			return []ent.Value{*id}
+		}
+	}
+	return nil
+}
+
+// RemovedEdges returns all edge names that were removed in this mutation.
+func (m *TunnelTrafficLogMutation) RemovedEdges() []string {
+	edges := make([]string, 0, 1)
+	return edges
+}
+
+// RemovedIDs returns all IDs (to other nodes) that were removed for the edge with
+// the given name in this mutation.
+func (m *TunnelTrafficLogMutation) RemovedIDs(name string) []ent.Value {
+	return nil
+}
+
+// ClearedEdges returns all edge names that were cleared in this mutation.
+func (m *TunnelTrafficLogMutation) ClearedEdges() []string {
+	edges := make([]string, 0, 1)
+	if m.cleareduser {
+		edges = append(edges, tunneltrafficlog.EdgeUser)
+	}
+	return edges
+}
+
+// EdgeCleared returns a boolean which indicates if the edge with the given name
+// was cleared in this mutation.
+func (m *TunnelTrafficLogMutation) EdgeCleared(name string) bool {
+	switch name {
+	case tunneltrafficlog.EdgeUser:
+		return m.cleareduser
+	}
+	return false
+}
+
+// ClearEdge clears the value of the edge with the given name. It returns an error
+// if that edge is not defined in the schema.
+func (m *TunnelTrafficLogMutation) ClearEdge(name string) error {
+	switch name {
+	case tunneltrafficlog.EdgeUser:
+		m.ClearUser()
+		return nil
+	}
+	return fmt.Errorf("unknown TunnelTrafficLog unique edge %s", name)
+}
+
+// ResetEdge resets all changes to the edge with the given name in this mutation.
+// It returns an error if the edge is not defined in the schema.
+func (m *TunnelTrafficLogMutation) ResetEdge(name string) error {
+	switch name {
+	case tunneltrafficlog.EdgeUser:
+		m.ResetUser()
+		return nil
+	}
+	return fmt.Errorf("unknown TunnelTrafficLog edge %s", name)
+}
+
 // UserMutation represents an operation that mutates the User nodes in the graph.
 type UserMutation struct {
 	config
-	op                 Op
-	typ                string
-	id                 *int64
-	nickname           *string
-	username           *string
-	password           *string
-	email              *string
-	clearedFields      map[string]struct{}
-	credentials        map[int64]struct{}
-	removedcredentials map[int64]struct{}
-	clearedcredentials bool
-	done               bool
-	oldValue           func(context.Context) (*User, error)
-	predicates         []predicate.User
+	op                  Op
+	typ                 string
+	id                  *int64
+	nickname            *string
+	username            *string
+	password            *string
+	email               *string
+	clearedFields       map[string]struct{}
+	credentials         map[int64]struct{}
+	removedcredentials  map[int64]struct{}
+	clearedcredentials  bool
+	traffic_logs        map[int64]struct{}
+	removedtraffic_logs map[int64]struct{}
+	clearedtraffic_logs bool
+	done                bool
+	oldValue            func(context.Context) (*User, error)
+	predicates          []predicate.User
 }
 
 var _ ent.Mutation = (*UserMutation)(nil)
@@ -1635,6 +2357,60 @@ func (m *UserMutation) ResetCredentials() {
 	m.removedcredentials = nil
 }
 
+// AddTrafficLogIDs adds the "traffic_logs" edge to the TunnelTrafficLog entity by ids.
+func (m *UserMutation) AddTrafficLogIDs(ids ...int64) {
+	if m.traffic_logs == nil {
+		m.traffic_logs = make(map[int64]struct{})
+	}
+	for i := range ids {
+		m.traffic_logs[ids[i]] = struct{}{}
+	}
+}
+
+// ClearTrafficLogs clears the "traffic_logs" edge to the TunnelTrafficLog entity.
+func (m *UserMutation) ClearTrafficLogs() {
+	m.clearedtraffic_logs = true
+}
+
+// TrafficLogsCleared reports if the "traffic_logs" edge to the TunnelTrafficLog entity was cleared.
+func (m *UserMutation) TrafficLogsCleared() bool {
+	return m.clearedtraffic_logs
+}
+
+// RemoveTrafficLogIDs removes the "traffic_logs" edge to the TunnelTrafficLog entity by IDs.
+func (m *UserMutation) RemoveTrafficLogIDs(ids ...int64) {
+	if m.removedtraffic_logs == nil {
+		m.removedtraffic_logs = make(map[int64]struct{})
+	}
+	for i := range ids {
+		delete(m.traffic_logs, ids[i])
+		m.removedtraffic_logs[ids[i]] = struct{}{}
+	}
+}
+
+// RemovedTrafficLogs returns the removed IDs of the "traffic_logs" edge to the TunnelTrafficLog entity.
+func (m *UserMutation) RemovedTrafficLogsIDs() (ids []int64) {
+	for id := range m.removedtraffic_logs {
+		ids = append(ids, id)
+	}
+	return
+}
+
+// TrafficLogsIDs returns the "traffic_logs" edge IDs in the mutation.
+func (m *UserMutation) TrafficLogsIDs() (ids []int64) {
+	for id := range m.traffic_logs {
+		ids = append(ids, id)
+	}
+	return
+}
+
+// ResetTrafficLogs resets all changes to the "traffic_logs" edge.
+func (m *UserMutation) ResetTrafficLogs() {
+	m.traffic_logs = nil
+	m.clearedtraffic_logs = false
+	m.removedtraffic_logs = nil
+}
+
 // Where appends a list predicates to the UserMutation builder.
 func (m *UserMutation) Where(ps ...predicate.User) {
 	m.predicates = append(m.predicates, ps...)
@@ -1819,9 +2595,12 @@ func (m *UserMutation) ResetField(name string) error {
 
 // AddedEdges returns all edge names that were set/added in this mutation.
 func (m *UserMutation) AddedEdges() []string {
-	edges := make([]string, 0, 1)
+	edges := make([]string, 0, 2)
 	if m.credentials != nil {
 		edges = append(edges, user.EdgeCredentials)
+	}
+	if m.traffic_logs != nil {
+		edges = append(edges, user.EdgeTrafficLogs)
 	}
 	return edges
 }
@@ -1836,15 +2615,24 @@ func (m *UserMutation) AddedIDs(name string) []ent.Value {
 			ids = append(ids, id)
 		}
 		return ids
+	case user.EdgeTrafficLogs:
+		ids := make([]ent.Value, 0, len(m.traffic_logs))
+		for id := range m.traffic_logs {
+			ids = append(ids, id)
+		}
+		return ids
 	}
 	return nil
 }
 
 // RemovedEdges returns all edge names that were removed in this mutation.
 func (m *UserMutation) RemovedEdges() []string {
-	edges := make([]string, 0, 1)
+	edges := make([]string, 0, 2)
 	if m.removedcredentials != nil {
 		edges = append(edges, user.EdgeCredentials)
+	}
+	if m.removedtraffic_logs != nil {
+		edges = append(edges, user.EdgeTrafficLogs)
 	}
 	return edges
 }
@@ -1859,15 +2647,24 @@ func (m *UserMutation) RemovedIDs(name string) []ent.Value {
 			ids = append(ids, id)
 		}
 		return ids
+	case user.EdgeTrafficLogs:
+		ids := make([]ent.Value, 0, len(m.removedtraffic_logs))
+		for id := range m.removedtraffic_logs {
+			ids = append(ids, id)
+		}
+		return ids
 	}
 	return nil
 }
 
 // ClearedEdges returns all edge names that were cleared in this mutation.
 func (m *UserMutation) ClearedEdges() []string {
-	edges := make([]string, 0, 1)
+	edges := make([]string, 0, 2)
 	if m.clearedcredentials {
 		edges = append(edges, user.EdgeCredentials)
+	}
+	if m.clearedtraffic_logs {
+		edges = append(edges, user.EdgeTrafficLogs)
 	}
 	return edges
 }
@@ -1878,6 +2675,8 @@ func (m *UserMutation) EdgeCleared(name string) bool {
 	switch name {
 	case user.EdgeCredentials:
 		return m.clearedcredentials
+	case user.EdgeTrafficLogs:
+		return m.clearedtraffic_logs
 	}
 	return false
 }
@@ -1896,6 +2695,9 @@ func (m *UserMutation) ResetEdge(name string) error {
 	switch name {
 	case user.EdgeCredentials:
 		m.ResetCredentials()
+		return nil
+	case user.EdgeTrafficLogs:
+		m.ResetTrafficLogs()
 		return nil
 	}
 	return fmt.Errorf("unknown User edge %s", name)
