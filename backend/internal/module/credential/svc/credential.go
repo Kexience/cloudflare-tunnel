@@ -5,25 +5,33 @@ import (
 	"cloudflared-tunnel/internal/infra/logger"
 	"cloudflared-tunnel/internal/module/credential/repo"
 	v1 "cloudflared-tunnel/internal/module/credential/ui/api/req/v1"
+	"cloudflared-tunnel/pkg/cloudflare"
 	"cloudflared-tunnel/pkg/crypto"
 	"cloudflared-tunnel/pkg/errno"
 )
 
 type svc struct {
-	repo   repo.CredentialRepo
-	log    logger.Logger
-	secret []byte
+	repo      repo.CredentialRepo
+	log       logger.Logger
+	secret    []byte
+	validator cloudflare.Validator
 }
 
-func NewCredentialSvc(repo repo.CredentialRepo, log logger.Logger, secret []byte) CredentialSvc {
+func NewCredentialSvc(repo repo.CredentialRepo, log logger.Logger, secret []byte, validator cloudflare.Validator) CredentialSvc {
 	return &svc{
-		repo:   repo,
-		log:    log,
-		secret: secret,
+		repo:      repo,
+		log:       log,
+		secret:    secret,
+		validator: validator,
 	}
 }
 
 func (s *svc) CreateCredential(userID int64, req *v1.CreateCredentialRequest) (*v1.CredentialVO, error) {
+	if err := s.validator.Validate(req.ApiToken, req.AccountID); err != nil {
+		s.log.Error("凭证验证失败", "error", err)
+		return nil, errno.ErrCredentialInvalid.WithMessage(err.Error())
+	}
+
 	encryptedToken, err := crypto.Encrypt(req.ApiToken, s.secret)
 	if err != nil {
 		s.log.Error("加密 API Token 失败", "error", err)
@@ -106,6 +114,11 @@ func (s *svc) UpdateCredential(userID, id int64, req *v1.UpdateCredentialRequest
 			return nil, errno.ErrCredentialNotFound
 		}
 		return nil, errno.ErrDB
+	}
+
+	if err := s.validator.Validate(req.ApiToken, req.AccountID); err != nil {
+		s.log.Error("凭证验证失败", "error", err)
+		return nil, errno.ErrCredentialInvalid.WithMessage(err.Error())
 	}
 
 	encryptedToken, err := crypto.Encrypt(req.ApiToken, s.secret)

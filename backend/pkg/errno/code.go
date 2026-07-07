@@ -26,6 +26,7 @@ var (
 	ErrCredentialExists   = &Errno{Code: 30002, Message: "凭证已存在"}
 	ErrCredentialEncrypt  = &Errno{Code: 30003, Message: "凭证加密失败"}
 	ErrCredentialDecrypt  = &Errno{Code: 30004, Message: "凭证解密失败"}
+	ErrCredentialInvalid  = &Errno{Code: 30005, Message: "凭证验证失败"}
 )
 
 type Errno struct {
@@ -35,6 +36,14 @@ type Errno struct {
 
 func (e *Errno) Error() string {
 	return e.Message
+}
+
+func (e *Errno) Is(target error) bool {
+	t, ok := target.(*Errno)
+	if !ok {
+		return false
+	}
+	return e.Code == t.Code
 }
 
 func (e *Errno) WithMessage(msg string) *Errno {

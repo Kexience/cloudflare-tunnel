@@ -1,6 +1,7 @@
 package svc
 
 import (
+	"fmt"
 	"testing"
 
 	"cloudflared-tunnel/internal/infra/logger"
@@ -13,6 +14,17 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
+
+type mockValidator struct {
+	validateFn func(apiToken, accountID string) error
+}
+
+func (m *mockValidator) Validate(apiToken, accountID string) error {
+	if m.validateFn != nil {
+		return m.validateFn(apiToken, accountID)
+	}
+	return nil
+}
 
 func newTestLogger(t *testing.T) logger.Logger {
 	t.Helper()
@@ -27,6 +39,18 @@ func newTestSecret() []byte {
 	return []byte("0123456789abcdef0123456789abcdef")
 }
 
+func passValidator() *mockValidator {
+	return &mockValidator{}
+}
+
+func failValidator(errMsg string) *mockValidator {
+	return &mockValidator{
+		validateFn: func(apiToken, accountID string) error {
+			return fmt.Errorf("%s", errMsg)
+		},
+	}
+}
+
 func TestCreateCredential(t *testing.T) {
 	t.Run("成功创建凭证", func(t *testing.T) {
 		db := testutil.NewSQLiteContainer(t)
@@ -34,7 +58,7 @@ func TestCreateCredential(t *testing.T) {
 		secret := newTestSecret()
 		user := db.InsertUser(t, "管理员", "admin", "hashed", "admin@test.com")
 		r := repo.NewCredentialRepo(db.Client, log)
-		svc := NewCredentialSvc(r, log, secret)
+		svc := NewCredentialSvc(r, log, secret, passValidator())
 
 		req := &v1.CreateCredentialRequest{
 			Name:      "生产环境",
@@ -53,13 +77,32 @@ func TestCreateCredential(t *testing.T) {
 		assert.NotZero(t, vo.CreatedAt)
 	})
 
+	t.Run("凭证验证失败", func(t *testing.T) {
+		db := testutil.NewSQLiteContainer(t)
+		log := newTestLogger(t)
+		secret := newTestSecret()
+		user := db.InsertUser(t, "管理员", "admin", "hashed", "admin@test.com")
+		r := repo.NewCredentialRepo(db.Client, log)
+		svc := NewCredentialSvc(r, log, secret, failValidator("API Token 无效"))
+
+		req := &v1.CreateCredentialRequest{
+			Name:      "生产环境",
+			ApiToken:  "bad_token",
+			AccountID: "account-123",
+			IsDefault: false,
+		}
+
+		_, err := svc.CreateCredential(user.ID, req)
+		assert.ErrorIs(t, err, errno.ErrCredentialInvalid)
+	})
+
 	t.Run("创建第二个凭证时设置默认会清除之前的默认", func(t *testing.T) {
 		db := testutil.NewSQLiteContainer(t)
 		log := newTestLogger(t)
 		secret := newTestSecret()
 		user := db.InsertUser(t, "管理员", "admin", "hashed", "admin@test.com")
 		r := repo.NewCredentialRepo(db.Client, log)
-		svc := NewCredentialSvc(r, log, secret)
+		svc := NewCredentialSvc(r, log, secret, passValidator())
 
 		req1 := &v1.CreateCredentialRequest{
 			Name:      "生产环境",
@@ -103,7 +146,7 @@ func TestGetCredential(t *testing.T) {
 		encryptedToken, _ := crypto.Encrypt("cf_token_123", secret)
 		db.InsertCredential(t, user.ID, "生产环境", encryptedToken, "account-123", true)
 		r := repo.NewCredentialRepo(db.Client, log)
-		svc := NewCredentialSvc(r, log, secret)
+		svc := NewCredentialSvc(r, log, secret, passValidator())
 
 		vo, err := svc.GetCredential(user.ID, 1)
 		require.NoError(t, err)
@@ -119,7 +162,7 @@ func TestGetCredential(t *testing.T) {
 		secret := newTestSecret()
 		user := db.InsertUser(t, "管理员", "admin", "hashed", "admin@test.com")
 		r := repo.NewCredentialRepo(db.Client, log)
-		svc := NewCredentialSvc(r, log, secret)
+		svc := NewCredentialSvc(r, log, secret, passValidator())
 
 		_, err := svc.GetCredential(user.ID, 999)
 		assert.ErrorIs(t, err, errno.ErrCredentialNotFound)
@@ -134,7 +177,7 @@ func TestGetCredential(t *testing.T) {
 		encryptedToken, _ := crypto.Encrypt("cf_token", secret)
 		db.InsertCredential(t, user1.ID, "生产环境", encryptedToken, "account-123", true)
 		r := repo.NewCredentialRepo(db.Client, log)
-		svc := NewCredentialSvc(r, log, secret)
+		svc := NewCredentialSvc(r, log, secret, passValidator())
 
 		_, err := svc.GetCredential(user2.ID, 1)
 		assert.ErrorIs(t, err, errno.ErrCredentialNotFound)
@@ -152,7 +195,7 @@ func TestGetCredentials(t *testing.T) {
 		db.InsertCredential(t, user.ID, "生产环境", encryptedToken1, "account-1", true)
 		db.InsertCredential(t, user.ID, "测试环境", encryptedToken2, "account-2", false)
 		r := repo.NewCredentialRepo(db.Client, log)
-		svc := NewCredentialSvc(r, log, secret)
+		svc := NewCredentialSvc(r, log, secret, passValidator())
 
 		vos, err := svc.GetCredentials(user.ID)
 		require.NoError(t, err)
@@ -167,7 +210,7 @@ func TestGetCredentials(t *testing.T) {
 		secret := newTestSecret()
 		user := db.InsertUser(t, "管理员", "admin", "hashed", "admin@test.com")
 		r := repo.NewCredentialRepo(db.Client, log)
-		svc := NewCredentialSvc(r, log, secret)
+		svc := NewCredentialSvc(r, log, secret, passValidator())
 
 		vos, err := svc.GetCredentials(user.ID)
 		require.NoError(t, err)
@@ -186,7 +229,7 @@ func TestGetDefaultCredential(t *testing.T) {
 		encryptedToken2, _ := crypto.Encrypt("other_token", secret)
 		db.InsertCredential(t, user.ID, "测试环境", encryptedToken2, "account-456", false)
 		r := repo.NewCredentialRepo(db.Client, log)
-		svc := NewCredentialSvc(r, log, secret)
+		svc := NewCredentialSvc(r, log, secret, passValidator())
 
 		vo, err := svc.GetDefaultCredential(user.ID)
 		require.NoError(t, err)
@@ -203,7 +246,7 @@ func TestGetDefaultCredential(t *testing.T) {
 		encryptedToken, _ := crypto.Encrypt("token", secret)
 		db.InsertCredential(t, user.ID, "测试环境", encryptedToken, "account-123", false)
 		r := repo.NewCredentialRepo(db.Client, log)
-		svc := NewCredentialSvc(r, log, secret)
+		svc := NewCredentialSvc(r, log, secret, passValidator())
 
 		_, err := svc.GetDefaultCredential(user.ID)
 		assert.ErrorIs(t, err, errno.ErrCredentialNotFound)
@@ -219,7 +262,7 @@ func TestUpdateCredential(t *testing.T) {
 		encryptedToken, _ := crypto.Encrypt("old_token", secret)
 		db.InsertCredential(t, user.ID, "生产环境", encryptedToken, "account-123", true)
 		r := repo.NewCredentialRepo(db.Client, log)
-		svc := NewCredentialSvc(r, log, secret)
+		svc := NewCredentialSvc(r, log, secret, passValidator())
 
 		req := &v1.UpdateCredentialRequest{
 			Name:      "生产环境-v2",
@@ -236,13 +279,34 @@ func TestUpdateCredential(t *testing.T) {
 		assert.True(t, vo.IsDefault)
 	})
 
+	t.Run("凭证验证失败", func(t *testing.T) {
+		db := testutil.NewSQLiteContainer(t)
+		log := newTestLogger(t)
+		secret := newTestSecret()
+		user := db.InsertUser(t, "管理员", "admin", "hashed", "admin@test.com")
+		encryptedToken, _ := crypto.Encrypt("old_token", secret)
+		db.InsertCredential(t, user.ID, "生产环境", encryptedToken, "account-123", true)
+		r := repo.NewCredentialRepo(db.Client, log)
+		svc := NewCredentialSvc(r, log, secret, failValidator("API Token 无效"))
+
+		req := &v1.UpdateCredentialRequest{
+			Name:      "test",
+			ApiToken:  "bad_token",
+			AccountID: "account-123",
+			IsDefault: false,
+		}
+
+		_, err := svc.UpdateCredential(user.ID, 1, req)
+		assert.ErrorIs(t, err, errno.ErrCredentialInvalid)
+	})
+
 	t.Run("更新不存在的凭证", func(t *testing.T) {
 		db := testutil.NewSQLiteContainer(t)
 		log := newTestLogger(t)
 		secret := newTestSecret()
 		user := db.InsertUser(t, "管理员", "admin", "hashed", "admin@test.com")
 		r := repo.NewCredentialRepo(db.Client, log)
-		svc := NewCredentialSvc(r, log, secret)
+		svc := NewCredentialSvc(r, log, secret, passValidator())
 
 		req := &v1.UpdateCredentialRequest{
 			Name:      "test",
@@ -265,7 +329,7 @@ func TestDeleteCredential(t *testing.T) {
 		encryptedToken, _ := crypto.Encrypt("token", secret)
 		db.InsertCredential(t, user.ID, "生产环境", encryptedToken, "account-123", true)
 		r := repo.NewCredentialRepo(db.Client, log)
-		svc := NewCredentialSvc(r, log, secret)
+		svc := NewCredentialSvc(r, log, secret, passValidator())
 
 		err := svc.DeleteCredential(user.ID, 1)
 		require.NoError(t, err)
@@ -280,7 +344,7 @@ func TestDeleteCredential(t *testing.T) {
 		secret := newTestSecret()
 		user := db.InsertUser(t, "管理员", "admin", "hashed", "admin@test.com")
 		r := repo.NewCredentialRepo(db.Client, log)
-		svc := NewCredentialSvc(r, log, secret)
+		svc := NewCredentialSvc(r, log, secret, passValidator())
 
 		err := svc.DeleteCredential(user.ID, 999)
 		assert.ErrorIs(t, err, errno.ErrCredentialNotFound)
@@ -295,7 +359,7 @@ func TestDeleteCredential(t *testing.T) {
 		encryptedToken, _ := crypto.Encrypt("token", secret)
 		db.InsertCredential(t, user1.ID, "生产环境", encryptedToken, "account-123", true)
 		r := repo.NewCredentialRepo(db.Client, log)
-		svc := NewCredentialSvc(r, log, secret)
+		svc := NewCredentialSvc(r, log, secret, passValidator())
 
 		err := svc.DeleteCredential(user2.ID, 1)
 		assert.ErrorIs(t, err, errno.ErrCredentialNotFound)
@@ -313,7 +377,7 @@ func TestSetDefaultCredential(t *testing.T) {
 		db.InsertCredential(t, user.ID, "生产环境", encryptedToken1, "account-1", true)
 		db.InsertCredential(t, user.ID, "测试环境", encryptedToken2, "account-2", false)
 		r := repo.NewCredentialRepo(db.Client, log)
-		svc := NewCredentialSvc(r, log, secret)
+		svc := NewCredentialSvc(r, log, secret, passValidator())
 
 		vo, err := svc.SetDefaultCredential(user.ID, 2)
 		require.NoError(t, err)
@@ -331,7 +395,7 @@ func TestSetDefaultCredential(t *testing.T) {
 		secret := newTestSecret()
 		user := db.InsertUser(t, "管理员", "admin", "hashed", "admin@test.com")
 		r := repo.NewCredentialRepo(db.Client, log)
-		svc := NewCredentialSvc(r, log, secret)
+		svc := NewCredentialSvc(r, log, secret, passValidator())
 
 		_, err := svc.SetDefaultCredential(user.ID, 999)
 		assert.ErrorIs(t, err, errno.ErrCredentialNotFound)
