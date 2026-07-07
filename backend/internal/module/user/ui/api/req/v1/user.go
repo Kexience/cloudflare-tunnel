@@ -11,3 +11,8 @@ type LoginVO struct {
 	Token string `json:"token"`
 	User  UserVO `json:"user"`
 }
+
+type Login struct {
+	Username string `json:"username"`
+	Password string `json:"password"`
+}

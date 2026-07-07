@@ -21,3 +21,17 @@ func (c *Ctrl) CreateUser(ctx *gin.Context) {
 	}
 	core.OK(ctx, nil)
 }
+
+func (c *Ctrl) LoginUser(ctx *gin.Context) {
+	var req v1.Login
+	if err := ctx.ShouldBindJSON(&req); err != nil {
+		core.Fail(ctx, errno.ErrParam)
+	}
+
+	u, err := c.UserSvc.Login(req.Username, req.Password)
+	if err != nil {
+		core.Fail(ctx, err)
+		return
+	}
+	core.OK(ctx, u)
+}

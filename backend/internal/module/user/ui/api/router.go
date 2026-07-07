@@ -24,6 +24,7 @@ func (r *Router) SetupRoutes(g *gin.Engine) {
 		user := v1.Group("/user")
 		{
 			user.POST("/register", r.ctrl.CreateUser)
+			user.POST("/login", r.ctrl.LoginUser)
 		}
 
 		// 需要鉴权的路由
