@@ -24,7 +24,7 @@ services:
       - JWT_EXPIRE_HOUR=${JWT_EXPIRE_HOUR:-24}
       - CREDENTIAL_SECRET=${CREDENTIAL_SECRET}
     healthcheck:
-      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:8083/v1/user/me"]
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:8083/health"]
       interval: 30s
       timeout: 10s
       retries: 3
