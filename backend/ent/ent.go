@@ -4,6 +4,7 @@ package ent
 
 import (
 	"cloudflared-tunnel/ent/credential"
+	"cloudflared-tunnel/ent/credentialtestlog"
 	"cloudflared-tunnel/ent/user"
 	"context"
 	"errors"
@@ -74,8 +75,9 @@ var (
 func checkColumn(t, c string) error {
 	initCheck.Do(func() {
 		columnCheck = sql.NewColumnCheck(map[string]func(string) bool{
-			credential.Table: credential.ValidColumn,
-			user.Table:       user.ValidColumn,
+			credential.Table:        credential.ValidColumn,
+			credentialtestlog.Table: credentialtestlog.ValidColumn,
+			user.Table:              user.ValidColumn,
 		})
 	})
 	return columnCheck(t, c)

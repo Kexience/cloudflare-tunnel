@@ -6,9 +6,7 @@ import (
 	"cloudflared-tunnel/ent/credential"
 	"cloudflared-tunnel/ent/credentialtestlog"
 	"cloudflared-tunnel/ent/predicate"
-	"cloudflared-tunnel/ent/user"
 	"context"
-	"database/sql/driver"
 	"fmt"
 	"math"
 
@@ -18,55 +16,54 @@ import (
 	"entgo.io/ent/schema/field"
 )
 
-// CredentialQuery is the builder for querying Credential entities.
-type CredentialQuery struct {
+// CredentialTestLogQuery is the builder for querying CredentialTestLog entities.
+type CredentialTestLogQuery struct {
 	config
-	ctx          *QueryContext
-	order        []credential.OrderOption
-	inters       []Interceptor
-	predicates   []predicate.Credential
-	withOwner    *UserQuery
-	withTestLogs *CredentialTestLogQuery
-	withFKs      bool
+	ctx            *QueryContext
+	order          []credentialtestlog.OrderOption
+	inters         []Interceptor
+	predicates     []predicate.CredentialTestLog
+	withCredential *CredentialQuery
+	withFKs        bool
 	// intermediate query (i.e. traversal path).
 	sql  *sql.Selector
 	path func(context.Context) (*sql.Selector, error)
 }
 
-// Where adds a new predicate for the CredentialQuery builder.
-func (_q *CredentialQuery) Where(ps ...predicate.Credential) *CredentialQuery {
+// Where adds a new predicate for the CredentialTestLogQuery builder.
+func (_q *CredentialTestLogQuery) Where(ps ...predicate.CredentialTestLog) *CredentialTestLogQuery {
 	_q.predicates = append(_q.predicates, ps...)
 	return _q
 }
 
 // Limit the number of records to be returned by this query.
-func (_q *CredentialQuery) Limit(limit int) *CredentialQuery {
+func (_q *CredentialTestLogQuery) Limit(limit int) *CredentialTestLogQuery {
 	_q.ctx.Limit = &limit
 	return _q
 }
 
 // Offset to start from.
-func (_q *CredentialQuery) Offset(offset int) *CredentialQuery {
+func (_q *CredentialTestLogQuery) Offset(offset int) *CredentialTestLogQuery {
 	_q.ctx.Offset = &offset
 	return _q
 }
 
 // Unique configures the query builder to filter duplicate records on query.
 // By default, unique is set to true, and can be disabled using this method.
-func (_q *CredentialQuery) Unique(unique bool) *CredentialQuery {
+func (_q *CredentialTestLogQuery) Unique(unique bool) *CredentialTestLogQuery {
 	_q.ctx.Unique = &unique
 	return _q
 }
 
 // Order specifies how the records should be ordered.
-func (_q *CredentialQuery) Order(o ...credential.OrderOption) *CredentialQuery {
+func (_q *CredentialTestLogQuery) Order(o ...credentialtestlog.OrderOption) *CredentialTestLogQuery {
 	_q.order = append(_q.order, o...)
 	return _q
 }
 
-// QueryOwner chains the current query on the "owner" edge.
-func (_q *CredentialQuery) QueryOwner() *UserQuery {
-	query := (&UserClient{config: _q.config}).Query()
+// QueryCredential chains the current query on the "credential" edge.
+func (_q *CredentialTestLogQuery) QueryCredential() *CredentialQuery {
+	query := (&CredentialClient{config: _q.config}).Query()
 	query.path = func(ctx context.Context) (fromU *sql.Selector, err error) {
 		if err := _q.prepareQuery(ctx); err != nil {
 			return nil, err
@@ -76,9 +73,9 @@ func (_q *CredentialQuery) QueryOwner() *UserQuery {
 			return nil, err
 		}
 		step := sqlgraph.NewStep(
-			sqlgraph.From(credential.Table, credential.FieldID, selector),
-			sqlgraph.To(user.Table, user.FieldID),
-			sqlgraph.Edge(sqlgraph.M2O, true, credential.OwnerTable, credential.OwnerColumn),
+			sqlgraph.From(credentialtestlog.Table, credentialtestlog.FieldID, selector),
+			sqlgraph.To(credential.Table, credential.FieldID),
+			sqlgraph.Edge(sqlgraph.M2O, true, credentialtestlog.CredentialTable, credentialtestlog.CredentialColumn),
 		)
 		fromU = sqlgraph.SetNeighbors(_q.driver.Dialect(), step)
 		return fromU, nil
@@ -86,43 +83,21 @@ func (_q *CredentialQuery) QueryOwner() *UserQuery {
 	return query
 }
 
-// QueryTestLogs chains the current query on the "test_logs" edge.
-func (_q *CredentialQuery) QueryTestLogs() *CredentialTestLogQuery {
-	query := (&CredentialTestLogClient{config: _q.config}).Query()
-	query.path = func(ctx context.Context) (fromU *sql.Selector, err error) {
-		if err := _q.prepareQuery(ctx); err != nil {
-			return nil, err
-		}
-		selector := _q.sqlQuery(ctx)
-		if err := selector.Err(); err != nil {
-			return nil, err
-		}
-		step := sqlgraph.NewStep(
-			sqlgraph.From(credential.Table, credential.FieldID, selector),
-			sqlgraph.To(credentialtestlog.Table, credentialtestlog.FieldID),
-			sqlgraph.Edge(sqlgraph.O2M, false, credential.TestLogsTable, credential.TestLogsColumn),
-		)
-		fromU = sqlgraph.SetNeighbors(_q.driver.Dialect(), step)
-		return fromU, nil
-	}
-	return query
-}
-
-// First returns the first Credential entity from the query.
-// Returns a *NotFoundError when no Credential was found.
-func (_q *CredentialQuery) First(ctx context.Context) (*Credential, error) {
+// First returns the first CredentialTestLog entity from the query.
+// Returns a *NotFoundError when no CredentialTestLog was found.
+func (_q *CredentialTestLogQuery) First(ctx context.Context) (*CredentialTestLog, error) {
 	nodes, err := _q.Limit(1).All(setContextOp(ctx, _q.ctx, ent.OpQueryFirst))
 	if err != nil {
 		return nil, err
 	}
 	if len(nodes) == 0 {
-		return nil, &NotFoundError{credential.Label}
+		return nil, &NotFoundError{credentialtestlog.Label}
 	}
 	return nodes[0], nil
 }
 
 // FirstX is like First, but panics if an error occurs.
-func (_q *CredentialQuery) FirstX(ctx context.Context) *Credential {
+func (_q *CredentialTestLogQuery) FirstX(ctx context.Context) *CredentialTestLog {
 	node, err := _q.First(ctx)
 	if err != nil && !IsNotFound(err) {
 		panic(err)
@@ -130,22 +105,22 @@ func (_q *CredentialQuery) FirstX(ctx context.Context) *Credential {
 	return node
 }
 
-// FirstID returns the first Credential ID from the query.
-// Returns a *NotFoundError when no Credential ID was found.
-func (_q *CredentialQuery) FirstID(ctx context.Context) (id int64, err error) {
+// FirstID returns the first CredentialTestLog ID from the query.
+// Returns a *NotFoundError when no CredentialTestLog ID was found.
+func (_q *CredentialTestLogQuery) FirstID(ctx context.Context) (id int64, err error) {
 	var ids []int64
 	if ids, err = _q.Limit(1).IDs(setContextOp(ctx, _q.ctx, ent.OpQueryFirstID)); err != nil {
 		return
 	}
 	if len(ids) == 0 {
-		err = &NotFoundError{credential.Label}
+		err = &NotFoundError{credentialtestlog.Label}
 		return
 	}
 	return ids[0], nil
 }
 
 // FirstIDX is like FirstID, but panics if an error occurs.
-func (_q *CredentialQuery) FirstIDX(ctx context.Context) int64 {
+func (_q *CredentialTestLogQuery) FirstIDX(ctx context.Context) int64 {
 	id, err := _q.FirstID(ctx)
 	if err != nil && !IsNotFound(err) {
 		panic(err)
@@ -153,10 +128,10 @@ func (_q *CredentialQuery) FirstIDX(ctx context.Context) int64 {
 	return id
 }
 
-// Only returns a single Credential entity found by the query, ensuring it only returns one.
-// Returns a *NotSingularError when more than one Credential entity is found.
-// Returns a *NotFoundError when no Credential entities are found.
-func (_q *CredentialQuery) Only(ctx context.Context) (*Credential, error) {
+// Only returns a single CredentialTestLog entity found by the query, ensuring it only returns one.
+// Returns a *NotSingularError when more than one CredentialTestLog entity is found.
+// Returns a *NotFoundError when no CredentialTestLog entities are found.
+func (_q *CredentialTestLogQuery) Only(ctx context.Context) (*CredentialTestLog, error) {
 	nodes, err := _q.Limit(2).All(setContextOp(ctx, _q.ctx, ent.OpQueryOnly))
 	if err != nil {
 		return nil, err
@@ -165,14 +140,14 @@ func (_q *CredentialQuery) Only(ctx context.Context) (*Credential, error) {
 	case 1:
 		return nodes[0], nil
 	case 0:
-		return nil, &NotFoundError{credential.Label}
+		return nil, &NotFoundError{credentialtestlog.Label}
 	default:
-		return nil, &NotSingularError{credential.Label}
+		return nil, &NotSingularError{credentialtestlog.Label}
 	}
 }
 
 // OnlyX is like Only, but panics if an error occurs.
-func (_q *CredentialQuery) OnlyX(ctx context.Context) *Credential {
+func (_q *CredentialTestLogQuery) OnlyX(ctx context.Context) *CredentialTestLog {
 	node, err := _q.Only(ctx)
 	if err != nil {
 		panic(err)
@@ -180,10 +155,10 @@ func (_q *CredentialQuery) OnlyX(ctx context.Context) *Credential {
 	return node
 }
 
-// OnlyID is like Only, but returns the only Credential ID in the query.
-// Returns a *NotSingularError when more than one Credential ID is found.
+// OnlyID is like Only, but returns the only CredentialTestLog ID in the query.
+// Returns a *NotSingularError when more than one CredentialTestLog ID is found.
 // Returns a *NotFoundError when no entities are found.
-func (_q *CredentialQuery) OnlyID(ctx context.Context) (id int64, err error) {
+func (_q *CredentialTestLogQuery) OnlyID(ctx context.Context) (id int64, err error) {
 	var ids []int64
 	if ids, err = _q.Limit(2).IDs(setContextOp(ctx, _q.ctx, ent.OpQueryOnlyID)); err != nil {
 		return
@@ -192,15 +167,15 @@ func (_q *CredentialQuery) OnlyID(ctx context.Context) (id int64, err error) {
 	case 1:
 		id = ids[0]
 	case 0:
-		err = &NotFoundError{credential.Label}
+		err = &NotFoundError{credentialtestlog.Label}
 	default:
-		err = &NotSingularError{credential.Label}
+		err = &NotSingularError{credentialtestlog.Label}
 	}
 	return
 }
 
 // OnlyIDX is like OnlyID, but panics if an error occurs.
-func (_q *CredentialQuery) OnlyIDX(ctx context.Context) int64 {
+func (_q *CredentialTestLogQuery) OnlyIDX(ctx context.Context) int64 {
 	id, err := _q.OnlyID(ctx)
 	if err != nil {
 		panic(err)
@@ -208,18 +183,18 @@ func (_q *CredentialQuery) OnlyIDX(ctx context.Context) int64 {
 	return id
 }
 
-// All executes the query and returns a list of Credentials.
-func (_q *CredentialQuery) All(ctx context.Context) ([]*Credential, error) {
+// All executes the query and returns a list of CredentialTestLogs.
+func (_q *CredentialTestLogQuery) All(ctx context.Context) ([]*CredentialTestLog, error) {
 	ctx = setContextOp(ctx, _q.ctx, ent.OpQueryAll)
 	if err := _q.prepareQuery(ctx); err != nil {
 		return nil, err
 	}
-	qr := querierAll[[]*Credential, *CredentialQuery]()
-	return withInterceptors[[]*Credential](ctx, _q, qr, _q.inters)
+	qr := querierAll[[]*CredentialTestLog, *CredentialTestLogQuery]()
+	return withInterceptors[[]*CredentialTestLog](ctx, _q, qr, _q.inters)
 }
 
 // AllX is like All, but panics if an error occurs.
-func (_q *CredentialQuery) AllX(ctx context.Context) []*Credential {
+func (_q *CredentialTestLogQuery) AllX(ctx context.Context) []*CredentialTestLog {
 	nodes, err := _q.All(ctx)
 	if err != nil {
 		panic(err)
@@ -227,20 +202,20 @@ func (_q *CredentialQuery) AllX(ctx context.Context) []*Credential {
 	return nodes
 }
 
-// IDs executes the query and returns a list of Credential IDs.
-func (_q *CredentialQuery) IDs(ctx context.Context) (ids []int64, err error) {
+// IDs executes the query and returns a list of CredentialTestLog IDs.
+func (_q *CredentialTestLogQuery) IDs(ctx context.Context) (ids []int64, err error) {
 	if _q.ctx.Unique == nil && _q.path != nil {
 		_q.Unique(true)
 	}
 	ctx = setContextOp(ctx, _q.ctx, ent.OpQueryIDs)
-	if err = _q.Select(credential.FieldID).Scan(ctx, &ids); err != nil {
+	if err = _q.Select(credentialtestlog.FieldID).Scan(ctx, &ids); err != nil {
 		return nil, err
 	}
 	return ids, nil
 }
 
 // IDsX is like IDs, but panics if an error occurs.
-func (_q *CredentialQuery) IDsX(ctx context.Context) []int64 {
+func (_q *CredentialTestLogQuery) IDsX(ctx context.Context) []int64 {
 	ids, err := _q.IDs(ctx)
 	if err != nil {
 		panic(err)
@@ -249,16 +224,16 @@ func (_q *CredentialQuery) IDsX(ctx context.Context) []int64 {
 }
 
 // Count returns the count of the given query.
-func (_q *CredentialQuery) Count(ctx context.Context) (int, error) {
+func (_q *CredentialTestLogQuery) Count(ctx context.Context) (int, error) {
 	ctx = setContextOp(ctx, _q.ctx, ent.OpQueryCount)
 	if err := _q.prepareQuery(ctx); err != nil {
 		return 0, err
 	}
-	return withInterceptors[int](ctx, _q, querierCount[*CredentialQuery](), _q.inters)
+	return withInterceptors[int](ctx, _q, querierCount[*CredentialTestLogQuery](), _q.inters)
 }
 
 // CountX is like Count, but panics if an error occurs.
-func (_q *CredentialQuery) CountX(ctx context.Context) int {
+func (_q *CredentialTestLogQuery) CountX(ctx context.Context) int {
 	count, err := _q.Count(ctx)
 	if err != nil {
 		panic(err)
@@ -267,7 +242,7 @@ func (_q *CredentialQuery) CountX(ctx context.Context) int {
 }
 
 // Exist returns true if the query has elements in the graph.
-func (_q *CredentialQuery) Exist(ctx context.Context) (bool, error) {
+func (_q *CredentialTestLogQuery) Exist(ctx context.Context) (bool, error) {
 	ctx = setContextOp(ctx, _q.ctx, ent.OpQueryExist)
 	switch _, err := _q.FirstID(ctx); {
 	case IsNotFound(err):
@@ -280,7 +255,7 @@ func (_q *CredentialQuery) Exist(ctx context.Context) (bool, error) {
 }
 
 // ExistX is like Exist, but panics if an error occurs.
-func (_q *CredentialQuery) ExistX(ctx context.Context) bool {
+func (_q *CredentialTestLogQuery) ExistX(ctx context.Context) bool {
 	exist, err := _q.Exist(ctx)
 	if err != nil {
 		panic(err)
@@ -288,45 +263,33 @@ func (_q *CredentialQuery) ExistX(ctx context.Context) bool {
 	return exist
 }
 
-// Clone returns a duplicate of the CredentialQuery builder, including all associated steps. It can be
+// Clone returns a duplicate of the CredentialTestLogQuery builder, including all associated steps. It can be
 // used to prepare common query builders and use them differently after the clone is made.
-func (_q *CredentialQuery) Clone() *CredentialQuery {
+func (_q *CredentialTestLogQuery) Clone() *CredentialTestLogQuery {
 	if _q == nil {
 		return nil
 	}
-	return &CredentialQuery{
-		config:       _q.config,
-		ctx:          _q.ctx.Clone(),
-		order:        append([]credential.OrderOption{}, _q.order...),
-		inters:       append([]Interceptor{}, _q.inters...),
-		predicates:   append([]predicate.Credential{}, _q.predicates...),
-		withOwner:    _q.withOwner.Clone(),
-		withTestLogs: _q.withTestLogs.Clone(),
+	return &CredentialTestLogQuery{
+		config:         _q.config,
+		ctx:            _q.ctx.Clone(),
+		order:          append([]credentialtestlog.OrderOption{}, _q.order...),
+		inters:         append([]Interceptor{}, _q.inters...),
+		predicates:     append([]predicate.CredentialTestLog{}, _q.predicates...),
+		withCredential: _q.withCredential.Clone(),
 		// clone intermediate query.
 		sql:  _q.sql.Clone(),
 		path: _q.path,
 	}
 }
 
-// WithOwner tells the query-builder to eager-load the nodes that are connected to
-// the "owner" edge. The optional arguments are used to configure the query builder of the edge.
-func (_q *CredentialQuery) WithOwner(opts ...func(*UserQuery)) *CredentialQuery {
-	query := (&UserClient{config: _q.config}).Query()
+// WithCredential tells the query-builder to eager-load the nodes that are connected to
+// the "credential" edge. The optional arguments are used to configure the query builder of the edge.
+func (_q *CredentialTestLogQuery) WithCredential(opts ...func(*CredentialQuery)) *CredentialTestLogQuery {
+	query := (&CredentialClient{config: _q.config}).Query()
 	for _, opt := range opts {
 		opt(query)
 	}
-	_q.withOwner = query
-	return _q
-}
-
-// WithTestLogs tells the query-builder to eager-load the nodes that are connected to
-// the "test_logs" edge. The optional arguments are used to configure the query builder of the edge.
-func (_q *CredentialQuery) WithTestLogs(opts ...func(*CredentialTestLogQuery)) *CredentialQuery {
-	query := (&CredentialTestLogClient{config: _q.config}).Query()
-	for _, opt := range opts {
-		opt(query)
-	}
-	_q.withTestLogs = query
+	_q.withCredential = query
 	return _q
 }
 
@@ -336,19 +299,19 @@ func (_q *CredentialQuery) WithTestLogs(opts ...func(*CredentialTestLogQuery)) *
 // Example:
 //
 //	var v []struct {
-//		Name string `json:"name,omitempty"`
+//		Status string `json:"status,omitempty"`
 //		Count int `json:"count,omitempty"`
 //	}
 //
-//	client.Credential.Query().
-//		GroupBy(credential.FieldName).
+//	client.CredentialTestLog.Query().
+//		GroupBy(credentialtestlog.FieldStatus).
 //		Aggregate(ent.Count()).
 //		Scan(ctx, &v)
-func (_q *CredentialQuery) GroupBy(field string, fields ...string) *CredentialGroupBy {
+func (_q *CredentialTestLogQuery) GroupBy(field string, fields ...string) *CredentialTestLogGroupBy {
 	_q.ctx.Fields = append([]string{field}, fields...)
-	grbuild := &CredentialGroupBy{build: _q}
+	grbuild := &CredentialTestLogGroupBy{build: _q}
 	grbuild.flds = &_q.ctx.Fields
-	grbuild.label = credential.Label
+	grbuild.label = credentialtestlog.Label
 	grbuild.scan = grbuild.Scan
 	return grbuild
 }
@@ -359,26 +322,26 @@ func (_q *CredentialQuery) GroupBy(field string, fields ...string) *CredentialGr
 // Example:
 //
 //	var v []struct {
-//		Name string `json:"name,omitempty"`
+//		Status string `json:"status,omitempty"`
 //	}
 //
-//	client.Credential.Query().
-//		Select(credential.FieldName).
+//	client.CredentialTestLog.Query().
+//		Select(credentialtestlog.FieldStatus).
 //		Scan(ctx, &v)
-func (_q *CredentialQuery) Select(fields ...string) *CredentialSelect {
+func (_q *CredentialTestLogQuery) Select(fields ...string) *CredentialTestLogSelect {
 	_q.ctx.Fields = append(_q.ctx.Fields, fields...)
-	sbuild := &CredentialSelect{CredentialQuery: _q}
-	sbuild.label = credential.Label
+	sbuild := &CredentialTestLogSelect{CredentialTestLogQuery: _q}
+	sbuild.label = credentialtestlog.Label
 	sbuild.flds, sbuild.scan = &_q.ctx.Fields, sbuild.Scan
 	return sbuild
 }
 
-// Aggregate returns a CredentialSelect configured with the given aggregations.
-func (_q *CredentialQuery) Aggregate(fns ...AggregateFunc) *CredentialSelect {
+// Aggregate returns a CredentialTestLogSelect configured with the given aggregations.
+func (_q *CredentialTestLogQuery) Aggregate(fns ...AggregateFunc) *CredentialTestLogSelect {
 	return _q.Select().Aggregate(fns...)
 }
 
-func (_q *CredentialQuery) prepareQuery(ctx context.Context) error {
+func (_q *CredentialTestLogQuery) prepareQuery(ctx context.Context) error {
 	for _, inter := range _q.inters {
 		if inter == nil {
 			return fmt.Errorf("ent: uninitialized interceptor (forgotten import ent/runtime?)")
@@ -390,7 +353,7 @@ func (_q *CredentialQuery) prepareQuery(ctx context.Context) error {
 		}
 	}
 	for _, f := range _q.ctx.Fields {
-		if !credential.ValidColumn(f) {
+		if !credentialtestlog.ValidColumn(f) {
 			return &ValidationError{Name: f, err: fmt.Errorf("ent: invalid field %q for query", f)}
 		}
 	}
@@ -404,27 +367,26 @@ func (_q *CredentialQuery) prepareQuery(ctx context.Context) error {
 	return nil
 }
 
-func (_q *CredentialQuery) sqlAll(ctx context.Context, hooks ...queryHook) ([]*Credential, error) {
+func (_q *CredentialTestLogQuery) sqlAll(ctx context.Context, hooks ...queryHook) ([]*CredentialTestLog, error) {
 	var (
-		nodes       = []*Credential{}
+		nodes       = []*CredentialTestLog{}
 		withFKs     = _q.withFKs
 		_spec       = _q.querySpec()
-		loadedTypes = [2]bool{
-			_q.withOwner != nil,
-			_q.withTestLogs != nil,
+		loadedTypes = [1]bool{
+			_q.withCredential != nil,
 		}
 	)
-	if _q.withOwner != nil {
+	if _q.withCredential != nil {
 		withFKs = true
 	}
 	if withFKs {
-		_spec.Node.Columns = append(_spec.Node.Columns, credential.ForeignKeys...)
+		_spec.Node.Columns = append(_spec.Node.Columns, credentialtestlog.ForeignKeys...)
 	}
 	_spec.ScanValues = func(columns []string) ([]any, error) {
-		return (*Credential).scanValues(nil, columns)
+		return (*CredentialTestLog).scanValues(nil, columns)
 	}
 	_spec.Assign = func(columns []string, values []any) error {
-		node := &Credential{config: _q.config}
+		node := &CredentialTestLog{config: _q.config}
 		nodes = append(nodes, node)
 		node.Edges.loadedTypes = loadedTypes
 		return node.assignValues(columns, values)
@@ -438,30 +400,23 @@ func (_q *CredentialQuery) sqlAll(ctx context.Context, hooks ...queryHook) ([]*C
 	if len(nodes) == 0 {
 		return nodes, nil
 	}
-	if query := _q.withOwner; query != nil {
-		if err := _q.loadOwner(ctx, query, nodes, nil,
-			func(n *Credential, e *User) { n.Edges.Owner = e }); err != nil {
-			return nil, err
-		}
-	}
-	if query := _q.withTestLogs; query != nil {
-		if err := _q.loadTestLogs(ctx, query, nodes,
-			func(n *Credential) { n.Edges.TestLogs = []*CredentialTestLog{} },
-			func(n *Credential, e *CredentialTestLog) { n.Edges.TestLogs = append(n.Edges.TestLogs, e) }); err != nil {
+	if query := _q.withCredential; query != nil {
+		if err := _q.loadCredential(ctx, query, nodes, nil,
+			func(n *CredentialTestLog, e *Credential) { n.Edges.Credential = e }); err != nil {
 			return nil, err
 		}
 	}
 	return nodes, nil
 }
 
-func (_q *CredentialQuery) loadOwner(ctx context.Context, query *UserQuery, nodes []*Credential, init func(*Credential), assign func(*Credential, *User)) error {
+func (_q *CredentialTestLogQuery) loadCredential(ctx context.Context, query *CredentialQuery, nodes []*CredentialTestLog, init func(*CredentialTestLog), assign func(*CredentialTestLog, *Credential)) error {
 	ids := make([]int64, 0, len(nodes))
-	nodeids := make(map[int64][]*Credential)
+	nodeids := make(map[int64][]*CredentialTestLog)
 	for i := range nodes {
-		if nodes[i].user_credentials == nil {
+		if nodes[i].credential_test_logs == nil {
 			continue
 		}
-		fk := *nodes[i].user_credentials
+		fk := *nodes[i].credential_test_logs
 		if _, ok := nodeids[fk]; !ok {
 			ids = append(ids, fk)
 		}
@@ -470,7 +425,7 @@ func (_q *CredentialQuery) loadOwner(ctx context.Context, query *UserQuery, node
 	if len(ids) == 0 {
 		return nil
 	}
-	query.Where(user.IDIn(ids...))
+	query.Where(credential.IDIn(ids...))
 	neighbors, err := query.All(ctx)
 	if err != nil {
 		return err
@@ -478,7 +433,7 @@ func (_q *CredentialQuery) loadOwner(ctx context.Context, query *UserQuery, node
 	for _, n := range neighbors {
 		nodes, ok := nodeids[n.ID]
 		if !ok {
-			return fmt.Errorf(`unexpected foreign-key "user_credentials" returned %v`, n.ID)
+			return fmt.Errorf(`unexpected foreign-key "credential_test_logs" returned %v`, n.ID)
 		}
 		for i := range nodes {
 			assign(nodes[i], n)
@@ -486,39 +441,8 @@ func (_q *CredentialQuery) loadOwner(ctx context.Context, query *UserQuery, node
 	}
 	return nil
 }
-func (_q *CredentialQuery) loadTestLogs(ctx context.Context, query *CredentialTestLogQuery, nodes []*Credential, init func(*Credential), assign func(*Credential, *CredentialTestLog)) error {
-	fks := make([]driver.Value, 0, len(nodes))
-	nodeids := make(map[int64]*Credential)
-	for i := range nodes {
-		fks = append(fks, nodes[i].ID)
-		nodeids[nodes[i].ID] = nodes[i]
-		if init != nil {
-			init(nodes[i])
-		}
-	}
-	query.withFKs = true
-	query.Where(predicate.CredentialTestLog(func(s *sql.Selector) {
-		s.Where(sql.InValues(s.C(credential.TestLogsColumn), fks...))
-	}))
-	neighbors, err := query.All(ctx)
-	if err != nil {
-		return err
-	}
-	for _, n := range neighbors {
-		fk := n.credential_test_logs
-		if fk == nil {
-			return fmt.Errorf(`foreign-key "credential_test_logs" is nil for node %v`, n.ID)
-		}
-		node, ok := nodeids[*fk]
-		if !ok {
-			return fmt.Errorf(`unexpected referenced foreign-key "credential_test_logs" returned %v for node %v`, *fk, n.ID)
-		}
-		assign(node, n)
-	}
-	return nil
-}
 
-func (_q *CredentialQuery) sqlCount(ctx context.Context) (int, error) {
+func (_q *CredentialTestLogQuery) sqlCount(ctx context.Context) (int, error) {
 	_spec := _q.querySpec()
 	_spec.Node.Columns = _q.ctx.Fields
 	if len(_q.ctx.Fields) > 0 {
@@ -527,8 +451,8 @@ func (_q *CredentialQuery) sqlCount(ctx context.Context) (int, error) {
 	return sqlgraph.CountNodes(ctx, _q.driver, _spec)
 }
 
-func (_q *CredentialQuery) querySpec() *sqlgraph.QuerySpec {
-	_spec := sqlgraph.NewQuerySpec(credential.Table, credential.Columns, sqlgraph.NewFieldSpec(credential.FieldID, field.TypeInt64))
+func (_q *CredentialTestLogQuery) querySpec() *sqlgraph.QuerySpec {
+	_spec := sqlgraph.NewQuerySpec(credentialtestlog.Table, credentialtestlog.Columns, sqlgraph.NewFieldSpec(credentialtestlog.FieldID, field.TypeInt64))
 	_spec.From = _q.sql
 	if unique := _q.ctx.Unique; unique != nil {
 		_spec.Unique = *unique
@@ -537,9 +461,9 @@ func (_q *CredentialQuery) querySpec() *sqlgraph.QuerySpec {
 	}
 	if fields := _q.ctx.Fields; len(fields) > 0 {
 		_spec.Node.Columns = make([]string, 0, len(fields))
-		_spec.Node.Columns = append(_spec.Node.Columns, credential.FieldID)
+		_spec.Node.Columns = append(_spec.Node.Columns, credentialtestlog.FieldID)
 		for i := range fields {
-			if fields[i] != credential.FieldID {
+			if fields[i] != credentialtestlog.FieldID {
 				_spec.Node.Columns = append(_spec.Node.Columns, fields[i])
 			}
 		}
@@ -567,12 +491,12 @@ func (_q *CredentialQuery) querySpec() *sqlgraph.QuerySpec {
 	return _spec
 }
 
-func (_q *CredentialQuery) sqlQuery(ctx context.Context) *sql.Selector {
+func (_q *CredentialTestLogQuery) sqlQuery(ctx context.Context) *sql.Selector {
 	builder := sql.Dialect(_q.driver.Dialect())
-	t1 := builder.Table(credential.Table)
+	t1 := builder.Table(credentialtestlog.Table)
 	columns := _q.ctx.Fields
 	if len(columns) == 0 {
-		columns = credential.Columns
+		columns = credentialtestlog.Columns
 	}
 	selector := builder.Select(t1.Columns(columns...)...).From(t1)
 	if _q.sql != nil {
@@ -599,28 +523,28 @@ func (_q *CredentialQuery) sqlQuery(ctx context.Context) *sql.Selector {
 	return selector
 }
 
-// CredentialGroupBy is the group-by builder for Credential entities.
-type CredentialGroupBy struct {
+// CredentialTestLogGroupBy is the group-by builder for CredentialTestLog entities.
+type CredentialTestLogGroupBy struct {
 	selector
-	build *CredentialQuery
+	build *CredentialTestLogQuery
 }
 
 // Aggregate adds the given aggregation functions to the group-by query.
-func (_g *CredentialGroupBy) Aggregate(fns ...AggregateFunc) *CredentialGroupBy {
+func (_g *CredentialTestLogGroupBy) Aggregate(fns ...AggregateFunc) *CredentialTestLogGroupBy {
 	_g.fns = append(_g.fns, fns...)
 	return _g
 }
 
 // Scan applies the selector query and scans the result into the given value.
-func (_g *CredentialGroupBy) Scan(ctx context.Context, v any) error {
+func (_g *CredentialTestLogGroupBy) Scan(ctx context.Context, v any) error {
 	ctx = setContextOp(ctx, _g.build.ctx, ent.OpQueryGroupBy)
 	if err := _g.build.prepareQuery(ctx); err != nil {
 		return err
 	}
-	return scanWithInterceptors[*CredentialQuery, *CredentialGroupBy](ctx, _g.build, _g, _g.build.inters, v)
+	return scanWithInterceptors[*CredentialTestLogQuery, *CredentialTestLogGroupBy](ctx, _g.build, _g, _g.build.inters, v)
 }
 
-func (_g *CredentialGroupBy) sqlScan(ctx context.Context, root *CredentialQuery, v any) error {
+func (_g *CredentialTestLogGroupBy) sqlScan(ctx context.Context, root *CredentialTestLogQuery, v any) error {
 	selector := root.sqlQuery(ctx).Select()
 	aggregation := make([]string, 0, len(_g.fns))
 	for _, fn := range _g.fns {
@@ -647,28 +571,28 @@ func (_g *CredentialGroupBy) sqlScan(ctx context.Context, root *CredentialQuery,
 	return sql.ScanSlice(rows, v)
 }
 
-// CredentialSelect is the builder for selecting fields of Credential entities.
-type CredentialSelect struct {
-	*CredentialQuery
+// CredentialTestLogSelect is the builder for selecting fields of CredentialTestLog entities.
+type CredentialTestLogSelect struct {
+	*CredentialTestLogQuery
 	selector
 }
 
 // Aggregate adds the given aggregation functions to the selector query.
-func (_s *CredentialSelect) Aggregate(fns ...AggregateFunc) *CredentialSelect {
+func (_s *CredentialTestLogSelect) Aggregate(fns ...AggregateFunc) *CredentialTestLogSelect {
 	_s.fns = append(_s.fns, fns...)
 	return _s
 }
 
 // Scan applies the selector query and scans the result into the given value.
-func (_s *CredentialSelect) Scan(ctx context.Context, v any) error {
+func (_s *CredentialTestLogSelect) Scan(ctx context.Context, v any) error {
 	ctx = setContextOp(ctx, _s.ctx, ent.OpQuerySelect)
 	if err := _s.prepareQuery(ctx); err != nil {
 		return err
 	}
-	return scanWithInterceptors[*CredentialQuery, *CredentialSelect](ctx, _s.CredentialQuery, _s, _s.inters, v)
+	return scanWithInterceptors[*CredentialTestLogQuery, *CredentialTestLogSelect](ctx, _s.CredentialTestLogQuery, _s, _s.inters, v)
 }
 
-func (_s *CredentialSelect) sqlScan(ctx context.Context, root *CredentialQuery, v any) error {
+func (_s *CredentialTestLogSelect) sqlScan(ctx context.Context, root *CredentialTestLogQuery, v any) error {
 	selector := root.sqlQuery(ctx)
 	aggregation := make([]string, 0, len(_s.fns))
 	for _, fn := range _s.fns {

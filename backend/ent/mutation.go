@@ -4,6 +4,7 @@ package ent
 
 import (
 	"cloudflared-tunnel/ent/credential"
+	"cloudflared-tunnel/ent/credentialtestlog"
 	"cloudflared-tunnel/ent/predicate"
 	"cloudflared-tunnel/ent/user"
 	"context"
@@ -25,28 +26,32 @@ const (
 	OpUpdateOne = ent.OpUpdateOne
 
 	// Node types.
-	TypeCredential = "Credential"
-	TypeUser       = "User"
+	TypeCredential        = "Credential"
+	TypeCredentialTestLog = "CredentialTestLog"
+	TypeUser              = "User"
 )
 
 // CredentialMutation represents an operation that mutates the Credential nodes in the graph.
 type CredentialMutation struct {
 	config
-	op            Op
-	typ           string
-	id            *int64
-	name          *string
-	api_token     *string
-	account_id    *string
-	is_default    *bool
-	created_at    *time.Time
-	updated_at    *time.Time
-	clearedFields map[string]struct{}
-	owner         *int64
-	clearedowner  bool
-	done          bool
-	oldValue      func(context.Context) (*Credential, error)
-	predicates    []predicate.Credential
+	op               Op
+	typ              string
+	id               *int64
+	name             *string
+	api_token        *string
+	account_id       *string
+	is_default       *bool
+	created_at       *time.Time
+	updated_at       *time.Time
+	clearedFields    map[string]struct{}
+	owner            *int64
+	clearedowner     bool
+	test_logs        map[int64]struct{}
+	removedtest_logs map[int64]struct{}
+	clearedtest_logs bool
+	done             bool
+	oldValue         func(context.Context) (*Credential, error)
+	predicates       []predicate.Credential
 }
 
 var _ ent.Mutation = (*CredentialMutation)(nil)
@@ -408,6 +413,60 @@ func (m *CredentialMutation) ResetOwner() {
 	m.clearedowner = false
 }
 
+// AddTestLogIDs adds the "test_logs" edge to the CredentialTestLog entity by ids.
+func (m *CredentialMutation) AddTestLogIDs(ids ...int64) {
+	if m.test_logs == nil {
+		m.test_logs = make(map[int64]struct{})
+	}
+	for i := range ids {
+		m.test_logs[ids[i]] = struct{}{}
+	}
+}
+
+// ClearTestLogs clears the "test_logs" edge to the CredentialTestLog entity.
+func (m *CredentialMutation) ClearTestLogs() {
+	m.clearedtest_logs = true
+}
+
+// TestLogsCleared reports if the "test_logs" edge to the CredentialTestLog entity was cleared.
+func (m *CredentialMutation) TestLogsCleared() bool {
+	return m.clearedtest_logs
+}
+
+// RemoveTestLogIDs removes the "test_logs" edge to the CredentialTestLog entity by IDs.
+func (m *CredentialMutation) RemoveTestLogIDs(ids ...int64) {
+	if m.removedtest_logs == nil {
+		m.removedtest_logs = make(map[int64]struct{})
+	}
+	for i := range ids {
+		delete(m.test_logs, ids[i])
+		m.removedtest_logs[ids[i]] = struct{}{}
+	}
+}
+
+// RemovedTestLogs returns the removed IDs of the "test_logs" edge to the CredentialTestLog entity.
+func (m *CredentialMutation) RemovedTestLogsIDs() (ids []int64) {
+	for id := range m.removedtest_logs {
+		ids = append(ids, id)
+	}
+	return
+}
+
+// TestLogsIDs returns the "test_logs" edge IDs in the mutation.
+func (m *CredentialMutation) TestLogsIDs() (ids []int64) {
+	for id := range m.test_logs {
+		ids = append(ids, id)
+	}
+	return
+}
+
+// ResetTestLogs resets all changes to the "test_logs" edge.
+func (m *CredentialMutation) ResetTestLogs() {
+	m.test_logs = nil
+	m.clearedtest_logs = false
+	m.removedtest_logs = nil
+}
+
 // Where appends a list predicates to the CredentialMutation builder.
 func (m *CredentialMutation) Where(ps ...predicate.Credential) {
 	m.predicates = append(m.predicates, ps...)
@@ -626,9 +685,12 @@ func (m *CredentialMutation) ResetField(name string) error {
 
 // AddedEdges returns all edge names that were set/added in this mutation.
 func (m *CredentialMutation) AddedEdges() []string {
-	edges := make([]string, 0, 1)
+	edges := make([]string, 0, 2)
 	if m.owner != nil {
 		edges = append(edges, credential.EdgeOwner)
+	}
+	if m.test_logs != nil {
+		edges = append(edges, credential.EdgeTestLogs)
 	}
 	return edges
 }
@@ -641,27 +703,47 @@ func (m *CredentialMutation) AddedIDs(name string) []ent.Value {
 		if id := m.owner; id != nil {
 			return []ent.Value{*id}
 		}
+	case credential.EdgeTestLogs:
+		ids := make([]ent.Value, 0, len(m.test_logs))
+		for id := range m.test_logs {
+			ids = append(ids, id)
+		}
+		return ids
 	}
 	return nil
 }
 
 // RemovedEdges returns all edge names that were removed in this mutation.
 func (m *CredentialMutation) RemovedEdges() []string {
-	edges := make([]string, 0, 1)
+	edges := make([]string, 0, 2)
+	if m.removedtest_logs != nil {
+		edges = append(edges, credential.EdgeTestLogs)
+	}
 	return edges
 }
 
 // RemovedIDs returns all IDs (to other nodes) that were removed for the edge with
 // the given name in this mutation.
 func (m *CredentialMutation) RemovedIDs(name string) []ent.Value {
+	switch name {
+	case credential.EdgeTestLogs:
+		ids := make([]ent.Value, 0, len(m.removedtest_logs))
+		for id := range m.removedtest_logs {
+			ids = append(ids, id)
+		}
+		return ids
+	}
 	return nil
 }
 
 // ClearedEdges returns all edge names that were cleared in this mutation.
 func (m *CredentialMutation) ClearedEdges() []string {
-	edges := make([]string, 0, 1)
+	edges := make([]string, 0, 2)
 	if m.clearedowner {
 		edges = append(edges, credential.EdgeOwner)
+	}
+	if m.clearedtest_logs {
+		edges = append(edges, credential.EdgeTestLogs)
 	}
 	return edges
 }
@@ -672,6 +754,8 @@ func (m *CredentialMutation) EdgeCleared(name string) bool {
 	switch name {
 	case credential.EdgeOwner:
 		return m.clearedowner
+	case credential.EdgeTestLogs:
+		return m.clearedtest_logs
 	}
 	return false
 }
@@ -694,8 +778,540 @@ func (m *CredentialMutation) ResetEdge(name string) error {
 	case credential.EdgeOwner:
 		m.ResetOwner()
 		return nil
+	case credential.EdgeTestLogs:
+		m.ResetTestLogs()
+		return nil
 	}
 	return fmt.Errorf("unknown Credential edge %s", name)
+}
+
+// CredentialTestLogMutation represents an operation that mutates the CredentialTestLog nodes in the graph.
+type CredentialTestLogMutation struct {
+	config
+	op                Op
+	typ               string
+	id                *int64
+	status            *string
+	error_message     *string
+	tested_at         *time.Time
+	clearedFields     map[string]struct{}
+	credential        *int64
+	clearedcredential bool
+	done              bool
+	oldValue          func(context.Context) (*CredentialTestLog, error)
+	predicates        []predicate.CredentialTestLog
+}
+
+var _ ent.Mutation = (*CredentialTestLogMutation)(nil)
+
+// credentialtestlogOption allows management of the mutation configuration using functional options.
+type credentialtestlogOption func(*CredentialTestLogMutation)
+
+// newCredentialTestLogMutation creates new mutation for the CredentialTestLog entity.
+func newCredentialTestLogMutation(c config, op Op, opts ...credentialtestlogOption) *CredentialTestLogMutation {
+	m := &CredentialTestLogMutation{
+		config:        c,
+		op:            op,
+		typ:           TypeCredentialTestLog,
+		clearedFields: make(map[string]struct{}),
+	}
+	for _, opt := range opts {
+		opt(m)
+	}
+	return m
+}
+
+// withCredentialTestLogID sets the ID field of the mutation.
+func withCredentialTestLogID(id int64) credentialtestlogOption {
+	return func(m *CredentialTestLogMutation) {
+		var (
+			err   error
+			once  sync.Once
+			value *CredentialTestLog
+		)
+		m.oldValue = func(ctx context.Context) (*CredentialTestLog, error) {
+			once.Do(func() {
+				if m.done {
+					err = errors.New("querying old values post mutation is not allowed")
+				} else {
+					value, err = m.Client().CredentialTestLog.Get(ctx, id)
+				}
+			})
+			return value, err
+		}
+		m.id = &id
+	}
+}
+
+// withCredentialTestLog sets the old CredentialTestLog of the mutation.
+func withCredentialTestLog(node *CredentialTestLog) credentialtestlogOption {
+	return func(m *CredentialTestLogMutation) {
+		m.oldValue = func(context.Context) (*CredentialTestLog, error) {
+			return node, nil
+		}
+		m.id = &node.ID
+	}
+}
+
+// Client returns a new `ent.Client` from the mutation. If the mutation was
+// executed in a transaction (ent.Tx), a transactional client is returned.
+func (m CredentialTestLogMutation) Client() *Client {
+	client := &Client{config: m.config}
+	client.init()
+	return client
+}
+
+// Tx returns an `ent.Tx` for mutations that were executed in transactions;
+// it returns an error otherwise.
+func (m CredentialTestLogMutation) Tx() (*Tx, error) {
+	if _, ok := m.driver.(*txDriver); !ok {
+		return nil, errors.New("ent: mutation is not running in a transaction")
+	}
+	tx := &Tx{config: m.config}
+	tx.init()
+	return tx, nil
+}
+
+// SetID sets the value of the id field. Note that this
+// operation is only accepted on creation of CredentialTestLog entities.
+func (m *CredentialTestLogMutation) SetID(id int64) {
+	m.id = &id
+}
+
+// ID returns the ID value in the mutation. Note that the ID is only available
+// if it was provided to the builder or after it was returned from the database.
+func (m *CredentialTestLogMutation) ID() (id int64, exists bool) {
+	if m.id == nil {
+		return
+	}
+	return *m.id, true
+}
+
+// IDs queries the database and returns the entity ids that match the mutation's predicate.
+// That means, if the mutation is applied within a transaction with an isolation level such
+// as sql.LevelSerializable, the returned ids match the ids of the rows that will be updated
+// or updated by the mutation.
+func (m *CredentialTestLogMutation) IDs(ctx context.Context) ([]int64, error) {
+	switch {
+	case m.op.Is(OpUpdateOne | OpDeleteOne):
+		id, exists := m.ID()
+		if exists {
+			return []int64{id}, nil
+		}
+		fallthrough
+	case m.op.Is(OpUpdate | OpDelete):
+		return m.Client().CredentialTestLog.Query().Where(m.predicates...).IDs(ctx)
+	default:
+		return nil, fmt.Errorf("IDs is not allowed on %s operations", m.op)
+	}
+}
+
+// SetStatus sets the "status" field.
+func (m *CredentialTestLogMutation) SetStatus(s string) {
+	m.status = &s
+}
+
+// Status returns the value of the "status" field in the mutation.
+func (m *CredentialTestLogMutation) Status() (r string, exists bool) {
+	v := m.status
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldStatus returns the old "status" field's value of the CredentialTestLog entity.
+// If the CredentialTestLog object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *CredentialTestLogMutation) OldStatus(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldStatus is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldStatus requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldStatus: %w", err)
+	}
+	return oldValue.Status, nil
+}
+
+// ResetStatus resets all changes to the "status" field.
+func (m *CredentialTestLogMutation) ResetStatus() {
+	m.status = nil
+}
+
+// SetErrorMessage sets the "error_message" field.
+func (m *CredentialTestLogMutation) SetErrorMessage(s string) {
+	m.error_message = &s
+}
+
+// ErrorMessage returns the value of the "error_message" field in the mutation.
+func (m *CredentialTestLogMutation) ErrorMessage() (r string, exists bool) {
+	v := m.error_message
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldErrorMessage returns the old "error_message" field's value of the CredentialTestLog entity.
+// If the CredentialTestLog object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *CredentialTestLogMutation) OldErrorMessage(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldErrorMessage is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldErrorMessage requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldErrorMessage: %w", err)
+	}
+	return oldValue.ErrorMessage, nil
+}
+
+// ClearErrorMessage clears the value of the "error_message" field.
+func (m *CredentialTestLogMutation) ClearErrorMessage() {
+	m.error_message = nil
+	m.clearedFields[credentialtestlog.FieldErrorMessage] = struct{}{}
+}
+
+// ErrorMessageCleared returns if the "error_message" field was cleared in this mutation.
+func (m *CredentialTestLogMutation) ErrorMessageCleared() bool {
+	_, ok := m.clearedFields[credentialtestlog.FieldErrorMessage]
+	return ok
+}
+
+// ResetErrorMessage resets all changes to the "error_message" field.
+func (m *CredentialTestLogMutation) ResetErrorMessage() {
+	m.error_message = nil
+	delete(m.clearedFields, credentialtestlog.FieldErrorMessage)
+}
+
+// SetTestedAt sets the "tested_at" field.
+func (m *CredentialTestLogMutation) SetTestedAt(t time.Time) {
+	m.tested_at = &t
+}
+
+// TestedAt returns the value of the "tested_at" field in the mutation.
+func (m *CredentialTestLogMutation) TestedAt() (r time.Time, exists bool) {
+	v := m.tested_at
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldTestedAt returns the old "tested_at" field's value of the CredentialTestLog entity.
+// If the CredentialTestLog object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *CredentialTestLogMutation) OldTestedAt(ctx context.Context) (v time.Time, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldTestedAt is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldTestedAt requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldTestedAt: %w", err)
+	}
+	return oldValue.TestedAt, nil
+}
+
+// ResetTestedAt resets all changes to the "tested_at" field.
+func (m *CredentialTestLogMutation) ResetTestedAt() {
+	m.tested_at = nil
+}
+
+// SetCredentialID sets the "credential" edge to the Credential entity by id.
+func (m *CredentialTestLogMutation) SetCredentialID(id int64) {
+	m.credential = &id
+}
+
+// ClearCredential clears the "credential" edge to the Credential entity.
+func (m *CredentialTestLogMutation) ClearCredential() {
+	m.clearedcredential = true
+}
+
+// CredentialCleared reports if the "credential" edge to the Credential entity was cleared.
+func (m *CredentialTestLogMutation) CredentialCleared() bool {
+	return m.clearedcredential
+}
+
+// CredentialID returns the "credential" edge ID in the mutation.
+func (m *CredentialTestLogMutation) CredentialID() (id int64, exists bool) {
+	if m.credential != nil {
+		return *m.credential, true
+	}
+	return
+}
+
+// CredentialIDs returns the "credential" edge IDs in the mutation.
+// Note that IDs always returns len(IDs) <= 1 for unique edges, and you should use
+// CredentialID instead. It exists only for internal usage by the builders.
+func (m *CredentialTestLogMutation) CredentialIDs() (ids []int64) {
+	if id := m.credential; id != nil {
+		ids = append(ids, *id)
+	}
+	return
+}
+
+// ResetCredential resets all changes to the "credential" edge.
+func (m *CredentialTestLogMutation) ResetCredential() {
+	m.credential = nil
+	m.clearedcredential = false
+}
+
+// Where appends a list predicates to the CredentialTestLogMutation builder.
+func (m *CredentialTestLogMutation) Where(ps ...predicate.CredentialTestLog) {
+	m.predicates = append(m.predicates, ps...)
+}
+
+// WhereP appends storage-level predicates to the CredentialTestLogMutation builder. Using this method,
+// users can use type-assertion to append predicates that do not depend on any generated package.
+func (m *CredentialTestLogMutation) WhereP(ps ...func(*sql.Selector)) {
+	p := make([]predicate.CredentialTestLog, len(ps))
+	for i := range ps {
+		p[i] = ps[i]
+	}
+	m.Where(p...)
+}
+
+// Op returns the operation name.
+func (m *CredentialTestLogMutation) Op() Op {
+	return m.op
+}
+
+// SetOp allows setting the mutation operation.
+func (m *CredentialTestLogMutation) SetOp(op Op) {
+	m.op = op
+}
+
+// Type returns the node type of this mutation (CredentialTestLog).
+func (m *CredentialTestLogMutation) Type() string {
+	return m.typ
+}
+
+// Fields returns all fields that were changed during this mutation. Note that in
+// order to get all numeric fields that were incremented/decremented, call
+// AddedFields().
+func (m *CredentialTestLogMutation) Fields() []string {
+	fields := make([]string, 0, 3)
+	if m.status != nil {
+		fields = append(fields, credentialtestlog.FieldStatus)
+	}
+	if m.error_message != nil {
+		fields = append(fields, credentialtestlog.FieldErrorMessage)
+	}
+	if m.tested_at != nil {
+		fields = append(fields, credentialtestlog.FieldTestedAt)
+	}
+	return fields
+}
+
+// Field returns the value of a field with the given name. The second boolean
+// return value indicates that this field was not set, or was not defined in the
+// schema.
+func (m *CredentialTestLogMutation) Field(name string) (ent.Value, bool) {
+	switch name {
+	case credentialtestlog.FieldStatus:
+		return m.Status()
+	case credentialtestlog.FieldErrorMessage:
+		return m.ErrorMessage()
+	case credentialtestlog.FieldTestedAt:
+		return m.TestedAt()
+	}
+	return nil, false
+}
+
+// OldField returns the old value of the field from the database. An error is
+// returned if the mutation operation is not UpdateOne, or the query to the
+// database failed.
+func (m *CredentialTestLogMutation) OldField(ctx context.Context, name string) (ent.Value, error) {
+	switch name {
+	case credentialtestlog.FieldStatus:
+		return m.OldStatus(ctx)
+	case credentialtestlog.FieldErrorMessage:
+		return m.OldErrorMessage(ctx)
+	case credentialtestlog.FieldTestedAt:
+		return m.OldTestedAt(ctx)
+	}
+	return nil, fmt.Errorf("unknown CredentialTestLog field %s", name)
+}
+
+// SetField sets the value of a field with the given name. It returns an error if
+// the field is not defined in the schema, or if the type mismatched the field
+// type.
+func (m *CredentialTestLogMutation) SetField(name string, value ent.Value) error {
+	switch name {
+	case credentialtestlog.FieldStatus:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetStatus(v)
+		return nil
+	case credentialtestlog.FieldErrorMessage:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetErrorMessage(v)
+		return nil
+	case credentialtestlog.FieldTestedAt:
+		v, ok := value.(time.Time)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetTestedAt(v)
+		return nil
+	}
+	return fmt.Errorf("unknown CredentialTestLog field %s", name)
+}
+
+// AddedFields returns all numeric fields that were incremented/decremented during
+// this mutation.
+func (m *CredentialTestLogMutation) AddedFields() []string {
+	return nil
+}
+
+// AddedField returns the numeric value that was incremented/decremented on a field
+// with the given name. The second boolean return value indicates that this field
+// was not set, or was not defined in the schema.
+func (m *CredentialTestLogMutation) AddedField(name string) (ent.Value, bool) {
+	return nil, false
+}
+
+// AddField adds the value to the field with the given name. It returns an error if
+// the field is not defined in the schema, or if the type mismatched the field
+// type.
+func (m *CredentialTestLogMutation) AddField(name string, value ent.Value) error {
+	switch name {
+	}
+	return fmt.Errorf("unknown CredentialTestLog numeric field %s", name)
+}
+
+// ClearedFields returns all nullable fields that were cleared during this
+// mutation.
+func (m *CredentialTestLogMutation) ClearedFields() []string {
+	var fields []string
+	if m.FieldCleared(credentialtestlog.FieldErrorMessage) {
+		fields = append(fields, credentialtestlog.FieldErrorMessage)
+	}
+	return fields
+}
+
+// FieldCleared returns a boolean indicating if a field with the given name was
+// cleared in this mutation.
+func (m *CredentialTestLogMutation) FieldCleared(name string) bool {
+	_, ok := m.clearedFields[name]
+	return ok
+}
+
+// ClearField clears the value of the field with the given name. It returns an
+// error if the field is not defined in the schema.
+func (m *CredentialTestLogMutation) ClearField(name string) error {
+	switch name {
+	case credentialtestlog.FieldErrorMessage:
+		m.ClearErrorMessage()
+		return nil
+	}
+	return fmt.Errorf("unknown CredentialTestLog nullable field %s", name)
+}
+
+// ResetField resets all changes in the mutation for the field with the given name.
+// It returns an error if the field is not defined in the schema.
+func (m *CredentialTestLogMutation) ResetField(name string) error {
+	switch name {
+	case credentialtestlog.FieldStatus:
+		m.ResetStatus()
+		return nil
+	case credentialtestlog.FieldErrorMessage:
+		m.ResetErrorMessage()
+		return nil
+	case credentialtestlog.FieldTestedAt:
+		m.ResetTestedAt()
+		return nil
+	}
+	return fmt.Errorf("unknown CredentialTestLog field %s", name)
+}
+
+// AddedEdges returns all edge names that were set/added in this mutation.
+func (m *CredentialTestLogMutation) AddedEdges() []string {
+	edges := make([]string, 0, 1)
+	if m.credential != nil {
+		edges = append(edges, credentialtestlog.EdgeCredential)
+	}
+	return edges
+}
+
+// AddedIDs returns all IDs (to other nodes) that were added for the given edge
+// name in this mutation.
+func (m *CredentialTestLogMutation) AddedIDs(name string) []ent.Value {
+	switch name {
+	case credentialtestlog.EdgeCredential:
+		if id := m.credential; id != nil {
+			return []ent.Value{*id}
+		}
+	}
+	return nil
+}
+
+// RemovedEdges returns all edge names that were removed in this mutation.
+func (m *CredentialTestLogMutation) RemovedEdges() []string {
+	edges := make([]string, 0, 1)
+	return edges
+}
+
+// RemovedIDs returns all IDs (to other nodes) that were removed for the edge with
+// the given name in this mutation.
+func (m *CredentialTestLogMutation) RemovedIDs(name string) []ent.Value {
+	return nil
+}
+
+// ClearedEdges returns all edge names that were cleared in this mutation.
+func (m *CredentialTestLogMutation) ClearedEdges() []string {
+	edges := make([]string, 0, 1)
+	if m.clearedcredential {
+		edges = append(edges, credentialtestlog.EdgeCredential)
+	}
+	return edges
+}
+
+// EdgeCleared returns a boolean which indicates if the edge with the given name
+// was cleared in this mutation.
+func (m *CredentialTestLogMutation) EdgeCleared(name string) bool {
+	switch name {
+	case credentialtestlog.EdgeCredential:
+		return m.clearedcredential
+	}
+	return false
+}
+
+// ClearEdge clears the value of the edge with the given name. It returns an error
+// if that edge is not defined in the schema.
+func (m *CredentialTestLogMutation) ClearEdge(name string) error {
+	switch name {
+	case credentialtestlog.EdgeCredential:
+		m.ClearCredential()
+		return nil
+	}
+	return fmt.Errorf("unknown CredentialTestLog unique edge %s", name)
+}
+
+// ResetEdge resets all changes to the edge with the given name in this mutation.
+// It returns an error if the edge is not defined in the schema.
+func (m *CredentialTestLogMutation) ResetEdge(name string) error {
+	switch name {
+	case credentialtestlog.EdgeCredential:
+		m.ResetCredential()
+		return nil
+	}
+	return fmt.Errorf("unknown CredentialTestLog edge %s", name)
 }
 
 // UserMutation represents an operation that mutates the User nodes in the graph.

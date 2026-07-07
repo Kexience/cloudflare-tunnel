@@ -4,6 +4,7 @@ package ent
 
 import (
 	"cloudflared-tunnel/ent/credential"
+	"cloudflared-tunnel/ent/credentialtestlog"
 	"cloudflared-tunnel/ent/user"
 	"context"
 	"errors"
@@ -96,6 +97,21 @@ func (_c *CredentialCreate) SetOwnerID(id int64) *CredentialCreate {
 // SetOwner sets the "owner" edge to the User entity.
 func (_c *CredentialCreate) SetOwner(v *User) *CredentialCreate {
 	return _c.SetOwnerID(v.ID)
+}
+
+// AddTestLogIDs adds the "test_logs" edge to the CredentialTestLog entity by IDs.
+func (_c *CredentialCreate) AddTestLogIDs(ids ...int64) *CredentialCreate {
+	_c.mutation.AddTestLogIDs(ids...)
+	return _c
+}
+
+// AddTestLogs adds the "test_logs" edges to the CredentialTestLog entity.
+func (_c *CredentialCreate) AddTestLogs(v ...*CredentialTestLog) *CredentialCreate {
+	ids := make([]int64, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _c.AddTestLogIDs(ids...)
 }
 
 // Mutation returns the CredentialMutation object of the builder.
@@ -261,6 +277,22 @@ func (_c *CredentialCreate) createSpec() (*Credential, *sqlgraph.CreateSpec) {
 			edge.Target.Nodes = append(edge.Target.Nodes, k)
 		}
 		_node.user_credentials = &nodes[0]
+		_spec.Edges = append(_spec.Edges, edge)
+	}
+	if nodes := _c.mutation.TestLogsIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   credential.TestLogsTable,
+			Columns: []string{credential.TestLogsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(credentialtestlog.FieldID, field.TypeInt64),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
 		_spec.Edges = append(_spec.Edges, edge)
 	}
 	return _node, _spec

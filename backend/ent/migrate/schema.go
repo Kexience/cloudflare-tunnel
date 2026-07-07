@@ -41,6 +41,28 @@ var (
 			},
 		},
 	}
+	// CredentialTestLogsColumns holds the columns for the "credential_test_logs" table.
+	CredentialTestLogsColumns = []*schema.Column{
+		{Name: "id", Type: field.TypeInt64, Increment: true, Comment: "日志ID"},
+		{Name: "status", Type: field.TypeString, Comment: "测试结果: success/failed"},
+		{Name: "error_message", Type: field.TypeString, Nullable: true, Comment: "错误信息"},
+		{Name: "tested_at", Type: field.TypeTime, Comment: "测试时间"},
+		{Name: "credential_test_logs", Type: field.TypeInt64},
+	}
+	// CredentialTestLogsTable holds the schema information for the "credential_test_logs" table.
+	CredentialTestLogsTable = &schema.Table{
+		Name:       "credential_test_logs",
+		Columns:    CredentialTestLogsColumns,
+		PrimaryKey: []*schema.Column{CredentialTestLogsColumns[0]},
+		ForeignKeys: []*schema.ForeignKey{
+			{
+				Symbol:     "credential_test_logs_credentials_test_logs",
+				Columns:    []*schema.Column{CredentialTestLogsColumns[4]},
+				RefColumns: []*schema.Column{CredentialsColumns[0]},
+				OnDelete:   schema.NoAction,
+			},
+		},
+	}
 	// UsersColumns holds the columns for the "users" table.
 	UsersColumns = []*schema.Column{
 		{Name: "id", Type: field.TypeInt64, Increment: true, Comment: "用户ID"},
@@ -70,6 +92,7 @@ var (
 	// Tables holds all the tables in the schema.
 	Tables = []*schema.Table{
 		CredentialsTable,
+		CredentialTestLogsTable,
 		UsersTable,
 	}
 )
@@ -79,6 +102,11 @@ func init() {
 	CredentialsTable.Annotation = &entsql.Annotation{
 		Table:   "credentials",
 		Options: "COMMENT='Cloudflare 凭证表'",
+	}
+	CredentialTestLogsTable.ForeignKeys[0].RefTable = CredentialsTable
+	CredentialTestLogsTable.Annotation = &entsql.Annotation{
+		Table:   "credential_test_logs",
+		Options: "COMMENT='凭证测试日志表'",
 	}
 	UsersTable.Annotation = &entsql.Annotation{
 		Table:   "users",

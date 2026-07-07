@@ -4,6 +4,7 @@ package ent
 
 import (
 	"cloudflared-tunnel/ent/credential"
+	"cloudflared-tunnel/ent/credentialtestlog"
 	"cloudflared-tunnel/ent/schema"
 	"cloudflared-tunnel/ent/user"
 	"time"
@@ -45,6 +46,20 @@ func init() {
 	credentialDescID := credentialFields[0].Descriptor()
 	// credential.IDValidator is a validator for the "id" field. It is called by the builders before save.
 	credential.IDValidator = credentialDescID.Validators[0].(func(int64) error)
+	credentialtestlogFields := schema.CredentialTestLog{}.Fields()
+	_ = credentialtestlogFields
+	// credentialtestlogDescStatus is the schema descriptor for status field.
+	credentialtestlogDescStatus := credentialtestlogFields[1].Descriptor()
+	// credentialtestlog.StatusValidator is a validator for the "status" field. It is called by the builders before save.
+	credentialtestlog.StatusValidator = credentialtestlogDescStatus.Validators[0].(func(string) error)
+	// credentialtestlogDescTestedAt is the schema descriptor for tested_at field.
+	credentialtestlogDescTestedAt := credentialtestlogFields[3].Descriptor()
+	// credentialtestlog.DefaultTestedAt holds the default value on creation for the tested_at field.
+	credentialtestlog.DefaultTestedAt = credentialtestlogDescTestedAt.Default.(func() time.Time)
+	// credentialtestlogDescID is the schema descriptor for id field.
+	credentialtestlogDescID := credentialtestlogFields[0].Descriptor()
+	// credentialtestlog.IDValidator is a validator for the "id" field. It is called by the builders before save.
+	credentialtestlog.IDValidator = credentialtestlogDescID.Validators[0].(func(int64) error)
 	userFields := schema.User{}.Fields()
 	_ = userFields
 	// userDescNickname is the schema descriptor for nickname field.

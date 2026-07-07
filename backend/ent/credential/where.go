@@ -393,6 +393,29 @@ func HasOwnerWith(preds ...predicate.User) predicate.Credential {
 	})
 }
 
+// HasTestLogs applies the HasEdge predicate on the "test_logs" edge.
+func HasTestLogs() predicate.Credential {
+	return predicate.Credential(func(s *sql.Selector) {
+		step := sqlgraph.NewStep(
+			sqlgraph.From(Table, FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, TestLogsTable, TestLogsColumn),
+		)
+		sqlgraph.HasNeighbors(s, step)
+	})
+}
+
+// HasTestLogsWith applies the HasEdge predicate on the "test_logs" edge with a given conditions (other predicates).
+func HasTestLogsWith(preds ...predicate.CredentialTestLog) predicate.Credential {
+	return predicate.Credential(func(s *sql.Selector) {
+		step := newTestLogsStep()
+		sqlgraph.HasNeighborsWith(s, step, func(s *sql.Selector) {
+			for _, p := range preds {
+				p(s)
+			}
+		})
+	})
+}
+
 // And groups predicates with the AND operator between them.
 func And(predicates ...predicate.Credential) predicate.Credential {
 	return predicate.Credential(sql.AndPredicates(predicates...))

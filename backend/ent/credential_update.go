@@ -4,6 +4,7 @@ package ent
 
 import (
 	"cloudflared-tunnel/ent/credential"
+	"cloudflared-tunnel/ent/credentialtestlog"
 	"cloudflared-tunnel/ent/predicate"
 	"cloudflared-tunnel/ent/user"
 	"context"
@@ -102,6 +103,21 @@ func (_u *CredentialUpdate) SetOwner(v *User) *CredentialUpdate {
 	return _u.SetOwnerID(v.ID)
 }
 
+// AddTestLogIDs adds the "test_logs" edge to the CredentialTestLog entity by IDs.
+func (_u *CredentialUpdate) AddTestLogIDs(ids ...int64) *CredentialUpdate {
+	_u.mutation.AddTestLogIDs(ids...)
+	return _u
+}
+
+// AddTestLogs adds the "test_logs" edges to the CredentialTestLog entity.
+func (_u *CredentialUpdate) AddTestLogs(v ...*CredentialTestLog) *CredentialUpdate {
+	ids := make([]int64, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _u.AddTestLogIDs(ids...)
+}
+
 // Mutation returns the CredentialMutation object of the builder.
 func (_u *CredentialUpdate) Mutation() *CredentialMutation {
 	return _u.mutation
@@ -111,6 +127,27 @@ func (_u *CredentialUpdate) Mutation() *CredentialMutation {
 func (_u *CredentialUpdate) ClearOwner() *CredentialUpdate {
 	_u.mutation.ClearOwner()
 	return _u
+}
+
+// ClearTestLogs clears all "test_logs" edges to the CredentialTestLog entity.
+func (_u *CredentialUpdate) ClearTestLogs() *CredentialUpdate {
+	_u.mutation.ClearTestLogs()
+	return _u
+}
+
+// RemoveTestLogIDs removes the "test_logs" edge to CredentialTestLog entities by IDs.
+func (_u *CredentialUpdate) RemoveTestLogIDs(ids ...int64) *CredentialUpdate {
+	_u.mutation.RemoveTestLogIDs(ids...)
+	return _u
+}
+
+// RemoveTestLogs removes "test_logs" edges to CredentialTestLog entities.
+func (_u *CredentialUpdate) RemoveTestLogs(v ...*CredentialTestLog) *CredentialUpdate {
+	ids := make([]int64, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _u.RemoveTestLogIDs(ids...)
 }
 
 // Save executes the query and returns the number of nodes affected by the update operation.
@@ -228,6 +265,51 @@ func (_u *CredentialUpdate) sqlSave(ctx context.Context) (_node int, err error) 
 		}
 		_spec.Edges.Add = append(_spec.Edges.Add, edge)
 	}
+	if _u.mutation.TestLogsCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   credential.TestLogsTable,
+			Columns: []string{credential.TestLogsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(credentialtestlog.FieldID, field.TypeInt64),
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := _u.mutation.RemovedTestLogsIDs(); len(nodes) > 0 && !_u.mutation.TestLogsCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   credential.TestLogsTable,
+			Columns: []string{credential.TestLogsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(credentialtestlog.FieldID, field.TypeInt64),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := _u.mutation.TestLogsIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   credential.TestLogsTable,
+			Columns: []string{credential.TestLogsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(credentialtestlog.FieldID, field.TypeInt64),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
+	}
 	if _node, err = sqlgraph.UpdateNodes(ctx, _u.driver, _spec); err != nil {
 		if _, ok := err.(*sqlgraph.NotFoundError); ok {
 			err = &NotFoundError{credential.Label}
@@ -321,6 +403,21 @@ func (_u *CredentialUpdateOne) SetOwner(v *User) *CredentialUpdateOne {
 	return _u.SetOwnerID(v.ID)
 }
 
+// AddTestLogIDs adds the "test_logs" edge to the CredentialTestLog entity by IDs.
+func (_u *CredentialUpdateOne) AddTestLogIDs(ids ...int64) *CredentialUpdateOne {
+	_u.mutation.AddTestLogIDs(ids...)
+	return _u
+}
+
+// AddTestLogs adds the "test_logs" edges to the CredentialTestLog entity.
+func (_u *CredentialUpdateOne) AddTestLogs(v ...*CredentialTestLog) *CredentialUpdateOne {
+	ids := make([]int64, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _u.AddTestLogIDs(ids...)
+}
+
 // Mutation returns the CredentialMutation object of the builder.
 func (_u *CredentialUpdateOne) Mutation() *CredentialMutation {
 	return _u.mutation
@@ -330,6 +427,27 @@ func (_u *CredentialUpdateOne) Mutation() *CredentialMutation {
 func (_u *CredentialUpdateOne) ClearOwner() *CredentialUpdateOne {
 	_u.mutation.ClearOwner()
 	return _u
+}
+
+// ClearTestLogs clears all "test_logs" edges to the CredentialTestLog entity.
+func (_u *CredentialUpdateOne) ClearTestLogs() *CredentialUpdateOne {
+	_u.mutation.ClearTestLogs()
+	return _u
+}
+
+// RemoveTestLogIDs removes the "test_logs" edge to CredentialTestLog entities by IDs.
+func (_u *CredentialUpdateOne) RemoveTestLogIDs(ids ...int64) *CredentialUpdateOne {
+	_u.mutation.RemoveTestLogIDs(ids...)
+	return _u
+}
+
+// RemoveTestLogs removes "test_logs" edges to CredentialTestLog entities.
+func (_u *CredentialUpdateOne) RemoveTestLogs(v ...*CredentialTestLog) *CredentialUpdateOne {
+	ids := make([]int64, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _u.RemoveTestLogIDs(ids...)
 }
 
 // Where appends a list predicates to the CredentialUpdate builder.
@@ -470,6 +588,51 @@ func (_u *CredentialUpdateOne) sqlSave(ctx context.Context) (_node *Credential, 
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: sqlgraph.NewFieldSpec(user.FieldID, field.TypeInt64),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
+	}
+	if _u.mutation.TestLogsCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   credential.TestLogsTable,
+			Columns: []string{credential.TestLogsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(credentialtestlog.FieldID, field.TypeInt64),
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := _u.mutation.RemovedTestLogsIDs(); len(nodes) > 0 && !_u.mutation.TestLogsCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   credential.TestLogsTable,
+			Columns: []string{credential.TestLogsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(credentialtestlog.FieldID, field.TypeInt64),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := _u.mutation.TestLogsIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   credential.TestLogsTable,
+			Columns: []string{credential.TestLogsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(credentialtestlog.FieldID, field.TypeInt64),
 			},
 		}
 		for _, k := range nodes {

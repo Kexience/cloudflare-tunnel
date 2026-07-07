@@ -42,9 +42,11 @@ type Credential struct {
 type CredentialEdges struct {
 	// 所属用户
 	Owner *User `json:"owner,omitempty"`
+	// 测试日志
+	TestLogs []*CredentialTestLog `json:"test_logs,omitempty"`
 	// loadedTypes holds the information for reporting if a
 	// type was loaded (or requested) in eager-loading or not.
-	loadedTypes [1]bool
+	loadedTypes [2]bool
 }
 
 // OwnerOrErr returns the Owner value or an error if the edge
@@ -56,6 +58,15 @@ func (e CredentialEdges) OwnerOrErr() (*User, error) {
 		return nil, &NotFoundError{label: user.Label}
 	}
 	return nil, &NotLoadedError{edge: "owner"}
+}
+
+// TestLogsOrErr returns the TestLogs value or an error if the edge
+// was not loaded in eager-loading.
+func (e CredentialEdges) TestLogsOrErr() ([]*CredentialTestLog, error) {
+	if e.loadedTypes[1] {
+		return e.TestLogs, nil
+	}
+	return nil, &NotLoadedError{edge: "test_logs"}
 }
 
 // scanValues returns the types for scanning values from sql.Rows.
@@ -153,6 +164,11 @@ func (_m *Credential) Value(name string) (ent.Value, error) {
 // QueryOwner queries the "owner" edge of the Credential entity.
 func (_m *Credential) QueryOwner() *UserQuery {
 	return NewCredentialClient(_m.config).QueryOwner(_m)
+}
+
+// QueryTestLogs queries the "test_logs" edge of the Credential entity.
+func (_m *Credential) QueryTestLogs() *CredentialTestLogQuery {
+	return NewCredentialClient(_m.config).QueryTestLogs(_m)
 }
 
 // Update returns a builder for updating this Credential.

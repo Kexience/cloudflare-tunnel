@@ -14,6 +14,8 @@ type Tx struct {
 	config
 	// Credential is the client for interacting with the Credential builders.
 	Credential *CredentialClient
+	// CredentialTestLog is the client for interacting with the CredentialTestLog builders.
+	CredentialTestLog *CredentialTestLogClient
 	// User is the client for interacting with the User builders.
 	User *UserClient
 
@@ -148,6 +150,7 @@ func (tx *Tx) Client() *Client {
 
 func (tx *Tx) init() {
 	tx.Credential = NewCredentialClient(tx.config)
+	tx.CredentialTestLog = NewCredentialTestLogClient(tx.config)
 	tx.User = NewUserClient(tx.config)
 }
 

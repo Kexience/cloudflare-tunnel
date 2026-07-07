@@ -28,6 +28,8 @@ const (
 	FieldUpdatedAt = "updated_at"
 	// EdgeOwner holds the string denoting the owner edge name in mutations.
 	EdgeOwner = "owner"
+	// EdgeTestLogs holds the string denoting the test_logs edge name in mutations.
+	EdgeTestLogs = "test_logs"
 	// Table holds the table name of the credential in the database.
 	Table = "credentials"
 	// OwnerTable is the table that holds the owner relation/edge.
@@ -37,6 +39,13 @@ const (
 	OwnerInverseTable = "users"
 	// OwnerColumn is the table column denoting the owner relation/edge.
 	OwnerColumn = "user_credentials"
+	// TestLogsTable is the table that holds the test_logs relation/edge.
+	TestLogsTable = "credential_test_logs"
+	// TestLogsInverseTable is the table name for the CredentialTestLog entity.
+	// It exists in this package in order to avoid circular dependency with the "credentialtestlog" package.
+	TestLogsInverseTable = "credential_test_logs"
+	// TestLogsColumn is the table column denoting the test_logs relation/edge.
+	TestLogsColumn = "credential_test_logs"
 )
 
 // Columns holds all SQL columns for credential fields.
@@ -134,10 +143,31 @@ func ByOwnerField(field string, opts ...sql.OrderTermOption) OrderOption {
 		sqlgraph.OrderByNeighborTerms(s, newOwnerStep(), sql.OrderByField(field, opts...))
 	}
 }
+
+// ByTestLogsCount orders the results by test_logs count.
+func ByTestLogsCount(opts ...sql.OrderTermOption) OrderOption {
+	return func(s *sql.Selector) {
+		sqlgraph.OrderByNeighborsCount(s, newTestLogsStep(), opts...)
+	}
+}
+
+// ByTestLogs orders the results by test_logs terms.
+func ByTestLogs(term sql.OrderTerm, terms ...sql.OrderTerm) OrderOption {
+	return func(s *sql.Selector) {
+		sqlgraph.OrderByNeighborTerms(s, newTestLogsStep(), append([]sql.OrderTerm{term}, terms...)...)
+	}
+}
 func newOwnerStep() *sqlgraph.Step {
 	return sqlgraph.NewStep(
 		sqlgraph.From(Table, FieldID),
 		sqlgraph.To(OwnerInverseTable, FieldID),
 		sqlgraph.Edge(sqlgraph.M2O, true, OwnerTable, OwnerColumn),
+	)
+}
+func newTestLogsStep() *sqlgraph.Step {
+	return sqlgraph.NewStep(
+		sqlgraph.From(Table, FieldID),
+		sqlgraph.To(TestLogsInverseTable, FieldID),
+		sqlgraph.Edge(sqlgraph.O2M, false, TestLogsTable, TestLogsColumn),
 	)
 }

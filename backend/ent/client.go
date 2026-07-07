@@ -12,6 +12,7 @@ import (
 	"cloudflared-tunnel/ent/migrate"
 
 	"cloudflared-tunnel/ent/credential"
+	"cloudflared-tunnel/ent/credentialtestlog"
 	"cloudflared-tunnel/ent/user"
 
 	"entgo.io/ent"
@@ -27,6 +28,8 @@ type Client struct {
 	Schema *migrate.Schema
 	// Credential is the client for interacting with the Credential builders.
 	Credential *CredentialClient
+	// CredentialTestLog is the client for interacting with the CredentialTestLog builders.
+	CredentialTestLog *CredentialTestLogClient
 	// User is the client for interacting with the User builders.
 	User *UserClient
 }
@@ -41,6 +44,7 @@ func NewClient(opts ...Option) *Client {
 func (c *Client) init() {
 	c.Schema = migrate.NewSchema(c.driver)
 	c.Credential = NewCredentialClient(c.config)
+	c.CredentialTestLog = NewCredentialTestLogClient(c.config)
 	c.User = NewUserClient(c.config)
 }
 
@@ -132,10 +136,11 @@ func (c *Client) Tx(ctx context.Context) (*Tx, error) {
 	cfg := c.config
 	cfg.driver = tx
 	return &Tx{
-		ctx:        ctx,
-		config:     cfg,
-		Credential: NewCredentialClient(cfg),
-		User:       NewUserClient(cfg),
+		ctx:               ctx,
+		config:            cfg,
+		Credential:        NewCredentialClient(cfg),
+		CredentialTestLog: NewCredentialTestLogClient(cfg),
+		User:              NewUserClient(cfg),
 	}, nil
 }
 
@@ -153,10 +158,11 @@ func (c *Client) BeginTx(ctx context.Context, opts *sql.TxOptions) (*Tx, error) 
 	cfg := c.config
 	cfg.driver = &txDriver{tx: tx, drv: c.driver}
 	return &Tx{
-		ctx:        ctx,
-		config:     cfg,
-		Credential: NewCredentialClient(cfg),
-		User:       NewUserClient(cfg),
+		ctx:               ctx,
+		config:            cfg,
+		Credential:        NewCredentialClient(cfg),
+		CredentialTestLog: NewCredentialTestLogClient(cfg),
+		User:              NewUserClient(cfg),
 	}, nil
 }
 
@@ -186,6 +192,7 @@ func (c *Client) Close() error {
 // In order to add hooks to a specific client, call: `client.Node.Use(...)`.
 func (c *Client) Use(hooks ...Hook) {
 	c.Credential.Use(hooks...)
+	c.CredentialTestLog.Use(hooks...)
 	c.User.Use(hooks...)
 }
 
@@ -193,6 +200,7 @@ func (c *Client) Use(hooks ...Hook) {
 // In order to add interceptors to a specific client, call: `client.Node.Intercept(...)`.
 func (c *Client) Intercept(interceptors ...Interceptor) {
 	c.Credential.Intercept(interceptors...)
+	c.CredentialTestLog.Intercept(interceptors...)
 	c.User.Intercept(interceptors...)
 }
 
@@ -201,6 +209,8 @@ func (c *Client) Mutate(ctx context.Context, m Mutation) (Value, error) {
 	switch m := m.(type) {
 	case *CredentialMutation:
 		return c.Credential.mutate(ctx, m)
+	case *CredentialTestLogMutation:
+		return c.CredentialTestLog.mutate(ctx, m)
 	case *UserMutation:
 		return c.User.mutate(ctx, m)
 	default:
@@ -332,6 +342,22 @@ func (c *CredentialClient) QueryOwner(_m *Credential) *UserQuery {
 	return query
 }
 
+// QueryTestLogs queries the test_logs edge of a Credential.
+func (c *CredentialClient) QueryTestLogs(_m *Credential) *CredentialTestLogQuery {
+	query := (&CredentialTestLogClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := _m.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(credential.Table, credential.FieldID, id),
+			sqlgraph.To(credentialtestlog.Table, credentialtestlog.FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, credential.TestLogsTable, credential.TestLogsColumn),
+		)
+		fromV = sqlgraph.Neighbors(_m.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
 // Hooks returns the client hooks.
 func (c *CredentialClient) Hooks() []Hook {
 	return c.hooks.Credential
@@ -354,6 +380,155 @@ func (c *CredentialClient) mutate(ctx context.Context, m *CredentialMutation) (V
 		return (&CredentialDelete{config: c.config, hooks: c.Hooks(), mutation: m}).Exec(ctx)
 	default:
 		return nil, fmt.Errorf("ent: unknown Credential mutation op: %q", m.Op())
+	}
+}
+
+// CredentialTestLogClient is a client for the CredentialTestLog schema.
+type CredentialTestLogClient struct {
+	config
+}
+
+// NewCredentialTestLogClient returns a client for the CredentialTestLog from the given config.
+func NewCredentialTestLogClient(c config) *CredentialTestLogClient {
+	return &CredentialTestLogClient{config: c}
+}
+
+// Use adds a list of mutation hooks to the hooks stack.
+// A call to `Use(f, g, h)` equals to `credentialtestlog.Hooks(f(g(h())))`.
+func (c *CredentialTestLogClient) Use(hooks ...Hook) {
+	c.hooks.CredentialTestLog = append(c.hooks.CredentialTestLog, hooks...)
+}
+
+// Intercept adds a list of query interceptors to the interceptors stack.
+// A call to `Intercept(f, g, h)` equals to `credentialtestlog.Intercept(f(g(h())))`.
+func (c *CredentialTestLogClient) Intercept(interceptors ...Interceptor) {
+	c.inters.CredentialTestLog = append(c.inters.CredentialTestLog, interceptors...)
+}
+
+// Create returns a builder for creating a CredentialTestLog entity.
+func (c *CredentialTestLogClient) Create() *CredentialTestLogCreate {
+	mutation := newCredentialTestLogMutation(c.config, OpCreate)
+	return &CredentialTestLogCreate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// CreateBulk returns a builder for creating a bulk of CredentialTestLog entities.
+func (c *CredentialTestLogClient) CreateBulk(builders ...*CredentialTestLogCreate) *CredentialTestLogCreateBulk {
+	return &CredentialTestLogCreateBulk{config: c.config, builders: builders}
+}
+
+// MapCreateBulk creates a bulk creation builder from the given slice. For each item in the slice, the function creates
+// a builder and applies setFunc on it.
+func (c *CredentialTestLogClient) MapCreateBulk(slice any, setFunc func(*CredentialTestLogCreate, int)) *CredentialTestLogCreateBulk {
+	rv := reflect.ValueOf(slice)
+	if rv.Kind() != reflect.Slice {
+		return &CredentialTestLogCreateBulk{err: fmt.Errorf("calling to CredentialTestLogClient.MapCreateBulk with wrong type %T, need slice", slice)}
+	}
+	builders := make([]*CredentialTestLogCreate, rv.Len())
+	for i := 0; i < rv.Len(); i++ {
+		builders[i] = c.Create()
+		setFunc(builders[i], i)
+	}
+	return &CredentialTestLogCreateBulk{config: c.config, builders: builders}
+}
+
+// Update returns an update builder for CredentialTestLog.
+func (c *CredentialTestLogClient) Update() *CredentialTestLogUpdate {
+	mutation := newCredentialTestLogMutation(c.config, OpUpdate)
+	return &CredentialTestLogUpdate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOne returns an update builder for the given entity.
+func (c *CredentialTestLogClient) UpdateOne(_m *CredentialTestLog) *CredentialTestLogUpdateOne {
+	mutation := newCredentialTestLogMutation(c.config, OpUpdateOne, withCredentialTestLog(_m))
+	return &CredentialTestLogUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOneID returns an update builder for the given id.
+func (c *CredentialTestLogClient) UpdateOneID(id int64) *CredentialTestLogUpdateOne {
+	mutation := newCredentialTestLogMutation(c.config, OpUpdateOne, withCredentialTestLogID(id))
+	return &CredentialTestLogUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// Delete returns a delete builder for CredentialTestLog.
+func (c *CredentialTestLogClient) Delete() *CredentialTestLogDelete {
+	mutation := newCredentialTestLogMutation(c.config, OpDelete)
+	return &CredentialTestLogDelete{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// DeleteOne returns a builder for deleting the given entity.
+func (c *CredentialTestLogClient) DeleteOne(_m *CredentialTestLog) *CredentialTestLogDeleteOne {
+	return c.DeleteOneID(_m.ID)
+}
+
+// DeleteOneID returns a builder for deleting the given entity by its id.
+func (c *CredentialTestLogClient) DeleteOneID(id int64) *CredentialTestLogDeleteOne {
+	builder := c.Delete().Where(credentialtestlog.ID(id))
+	builder.mutation.id = &id
+	builder.mutation.op = OpDeleteOne
+	return &CredentialTestLogDeleteOne{builder}
+}
+
+// Query returns a query builder for CredentialTestLog.
+func (c *CredentialTestLogClient) Query() *CredentialTestLogQuery {
+	return &CredentialTestLogQuery{
+		config: c.config,
+		ctx:    &QueryContext{Type: TypeCredentialTestLog},
+		inters: c.Interceptors(),
+	}
+}
+
+// Get returns a CredentialTestLog entity by its id.
+func (c *CredentialTestLogClient) Get(ctx context.Context, id int64) (*CredentialTestLog, error) {
+	return c.Query().Where(credentialtestlog.ID(id)).Only(ctx)
+}
+
+// GetX is like Get, but panics if an error occurs.
+func (c *CredentialTestLogClient) GetX(ctx context.Context, id int64) *CredentialTestLog {
+	obj, err := c.Get(ctx, id)
+	if err != nil {
+		panic(err)
+	}
+	return obj
+}
+
+// QueryCredential queries the credential edge of a CredentialTestLog.
+func (c *CredentialTestLogClient) QueryCredential(_m *CredentialTestLog) *CredentialQuery {
+	query := (&CredentialClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := _m.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(credentialtestlog.Table, credentialtestlog.FieldID, id),
+			sqlgraph.To(credential.Table, credential.FieldID),
+			sqlgraph.Edge(sqlgraph.M2O, true, credentialtestlog.CredentialTable, credentialtestlog.CredentialColumn),
+		)
+		fromV = sqlgraph.Neighbors(_m.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
+// Hooks returns the client hooks.
+func (c *CredentialTestLogClient) Hooks() []Hook {
+	return c.hooks.CredentialTestLog
+}
+
+// Interceptors returns the client interceptors.
+func (c *CredentialTestLogClient) Interceptors() []Interceptor {
+	return c.inters.CredentialTestLog
+}
+
+func (c *CredentialTestLogClient) mutate(ctx context.Context, m *CredentialTestLogMutation) (Value, error) {
+	switch m.Op() {
+	case OpCreate:
+		return (&CredentialTestLogCreate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdate:
+		return (&CredentialTestLogUpdate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdateOne:
+		return (&CredentialTestLogUpdateOne{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpDelete, OpDeleteOne:
+		return (&CredentialTestLogDelete{config: c.config, hooks: c.Hooks(), mutation: m}).Exec(ctx)
+	default:
+		return nil, fmt.Errorf("ent: unknown CredentialTestLog mutation op: %q", m.Op())
 	}
 }
 
@@ -509,9 +684,9 @@ func (c *UserClient) mutate(ctx context.Context, m *UserMutation) (Value, error)
 // hooks and interceptors per client, for fast access.
 type (
 	hooks struct {
-		Credential, User []ent.Hook
+		Credential, CredentialTestLog, User []ent.Hook
 	}
 	inters struct {
-		Credential, User []ent.Interceptor
+		Credential, CredentialTestLog, User []ent.Interceptor
 	}
 )

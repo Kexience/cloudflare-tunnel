@@ -20,6 +20,18 @@ func (f CredentialFunc) Mutate(ctx context.Context, m ent.Mutation) (ent.Value, 
 	return nil, fmt.Errorf("unexpected mutation type %T. expect *ent.CredentialMutation", m)
 }
 
+// The CredentialTestLogFunc type is an adapter to allow the use of ordinary
+// function as CredentialTestLog mutator.
+type CredentialTestLogFunc func(context.Context, *ent.CredentialTestLogMutation) (ent.Value, error)
+
+// Mutate calls f(ctx, m).
+func (f CredentialTestLogFunc) Mutate(ctx context.Context, m ent.Mutation) (ent.Value, error) {
+	if mv, ok := m.(*ent.CredentialTestLogMutation); ok {
+		return f(ctx, mv)
+	}
+	return nil, fmt.Errorf("unexpected mutation type %T. expect *ent.CredentialTestLogMutation", m)
+}
+
 // The UserFunc type is an adapter to allow the use of ordinary
 // function as User mutator.
 type UserFunc func(context.Context, *ent.UserMutation) (ent.Value, error)

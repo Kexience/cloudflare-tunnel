@@ -44,6 +44,8 @@ func (Credential) Edges() []ent.Edge {
 			Unique().
 			Required().
 			Comment("所属用户"),
+		edge.To("test_logs", CredentialTestLog.Type).
+			Comment("测试日志"),
 	}
 }
 
