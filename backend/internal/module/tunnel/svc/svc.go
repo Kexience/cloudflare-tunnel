@@ -8,6 +8,7 @@ import (
 	"cloudflared-tunnel/internal/infra/logger"
 	"cloudflared-tunnel/internal/module/credential/repo"
 	v1 "cloudflared-tunnel/internal/module/tunnel/ui/api/req/v1"
+	"cloudflared-tunnel/internal/types"
 	"cloudflared-tunnel/pkg/cloudflare"
 	"cloudflared-tunnel/pkg/crypto"
 	"cloudflared-tunnel/pkg/errno"
@@ -22,7 +23,7 @@ type svc struct {
 	tunnelClient   cloudflare.TunnelClient
 	dnsClient      cloudflare.DNSClient
 	log            logger.Logger
-	secret         []byte
+	secret         types.CredentialSecret
 	cloudflaredMgr *cloudflare.Manager
 	metricsClient  *cloudflare.MetricsClient
 	entClient      *ent.Client
@@ -40,7 +41,7 @@ func NewSvc(
 	tunnelClient cloudflare.TunnelClient,
 	dnsClient cloudflare.DNSClient,
 	log logger.Logger,
-	secret []byte,
+	secret types.CredentialSecret,
 	cloudflaredMgr *cloudflare.Manager,
 	entClient *ent.Client,
 ) *svc {

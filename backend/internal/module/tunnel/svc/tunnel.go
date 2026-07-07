@@ -144,16 +144,19 @@ func (s *svc) ListTunnelConnections(userID, credentialID int64, tunnelID string)
 
 	vo := s.toTunnelVO(tunnel)
 	if len(connections) > 0 {
-		conns := make([]v1.TunnelConnectionVO, len(connections))
-		for i, conn := range connections {
-			conns[i] = v1.TunnelConnectionVO{
+		conns := make([]v1.TunnelConnectionVO, 0, len(connections))
+		for _, conn := range connections {
+			if len(conn.Connections) == 0 {
+				continue
+			}
+			conns = append(conns, v1.TunnelConnectionVO{
 				ID:            conn.ID,
 				ColoName:      conn.Connections[0].ColoName,
 				ClientID:      conn.Connections[0].ClientID,
 				ClientVersion: conn.Version,
 				OpenedAt:      conn.Connections[0].OpenedAt,
 				OriginIP:      conn.Connections[0].OriginIP,
-			}
+			})
 		}
 		vo.Connections = conns
 	}
@@ -284,21 +287,35 @@ func (s *svc) StopTunnel(userID, credentialID int64, tunnelID string) error {
 		return errno.ErrTunnelStopFailed.WithMessage("隧道未在运行")
 	}
 
-	// 终止进程
-	if err := cmd.Process.Kill(); err != nil {
-		s.log.Error("停止隧道进程失败", "tunnelID", tunnelID, "error", err)
-		return errno.ErrTunnelStopFailed
+	// 先尝试优雅关闭（SIGTERM）
+	if err := cmd.Process.Signal(syscall.SIGTERM); err != nil {
+		s.log.Error("发送 SIGTERM 失败，尝试强制终止", "tunnelID", tunnelID, "error", err)
+		if err := cmd.Process.Kill(); err != nil {
+			s.log.Error("停止隧道进程失败", "tunnelID", tunnelID, "error", err)
+			return errno.ErrTunnelStopFailed
+		}
 	}
 
-	// 等待进程退出
+	// 等待进程退出，超时后强制终止
+	done := make(chan struct{})
 	go func() {
 		cmd.Wait()
-		s.mu.Lock()
-		delete(s.processes, tunnelID)
-		delete(s.metricsPorts, tunnelID)
-		s.mu.Unlock()
+		close(done)
 	}()
 
+	select {
+	case <-done:
+		s.log.Info("隧道进程已优雅退出", "tunnelID", tunnelID)
+	case <-time.After(5 * time.Second):
+		s.log.Warn("隧道进程未响应 SIGTERM，强制终止", "tunnelID", tunnelID)
+		if err := cmd.Process.Kill(); err != nil {
+			s.log.Error("强制终止隧道进程失败", "tunnelID", tunnelID, "error", err)
+		}
+		<-done
+	}
+
+	delete(s.processes, tunnelID)
+	delete(s.metricsPorts, tunnelID)
 	return nil
 }
 
@@ -429,10 +446,24 @@ func (s *svc) Cleanup() {
 	for tunnelID, cmd := range s.processes {
 		if cmd.Process != nil {
 			s.log.Info("停止隧道进程", "tunnelID", tunnelID)
-			if err := cmd.Process.Kill(); err != nil {
-				s.log.Error("停止隧道进程失败", "tunnelID", tunnelID, "error", err)
+			// 先 SIGTERM 优雅关闭
+			if err := cmd.Process.Signal(syscall.SIGTERM); err != nil {
+				s.log.Error("发送 SIGTERM 失败，强制终止", "tunnelID", tunnelID, "error", err)
+				if err := cmd.Process.Kill(); err != nil {
+					s.log.Error("停止隧道进程失败", "tunnelID", tunnelID, "error", err)
+				}
 			}
-			cmd.Wait()
+			done := make(chan struct{})
+			go func() {
+				cmd.Wait()
+				close(done)
+			}()
+			select {
+			case <-done:
+			case <-time.After(5 * time.Second):
+				cmd.Process.Kill()
+				<-done
+			}
 		}
 	}
 
