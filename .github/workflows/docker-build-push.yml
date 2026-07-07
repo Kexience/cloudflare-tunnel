@@ -5,10 +5,6 @@ on:
     branches:
       - main
       - master
-  pull_request:
-    branches:
-      - main
-      - master
 
 env:
   GHCR_REPO: ghcr.io/${{ github.repository }}
@@ -42,9 +38,8 @@ jobs:
         with:
           images: ${{ env.GHCR_REPO }}
           tags: |
+            type=raw,value=latest
             type=ref,event=branch
-            type=ref,event=pr
-            type=semver,pattern={{version}}
             type=sha
 
       - name: 构建并推送后端镜像
@@ -52,7 +47,7 @@ jobs:
         with:
           context: ./backend
           file: ./backend/Dockerfile
-          push: ${{ github.event_name != 'pull_request' }}
+          push: true
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
           cache-from: type=gha
@@ -85,9 +80,8 @@ jobs:
         with:
           images: ${{ env.FRONTEND_GHCR_REPO }}
           tags: |
+            type=raw,value=latest
             type=ref,event=branch
-            type=ref,event=pr
-            type=semver,pattern={{version}}
             type=sha
 
       - name: 构建并推送前端镜像
@@ -95,7 +89,7 @@ jobs:
         with:
           context: ./frontend
           file: ./frontend/Dockerfile
-          push: ${{ github.event_name != 'pull_request' }}
+          push: true
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
           cache-from: type=gha
