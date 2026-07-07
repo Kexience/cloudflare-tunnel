@@ -3,7 +3,7 @@ import { onMount } from 'svelte'
 import { navigate } from 'svelte-routing'
 import { Layout } from '../lib/layout'
 import { PrimaryButton, SecondaryButton } from '../lib/components'
-import { getTunnel, getTunnelToken, listTunnelConnections, getTunnelConfig, updateTunnelConfig } from '../lib/tunnel/api'
+import { getTunnel, getTunnelToken, listTunnelConnections, getTunnelConfig, updateTunnelConfig, startTunnel, stopTunnel, getTunnelStatus } from '../lib/tunnel/api'
 import type { TunnelVO, TunnelTokenVO, TunnelConfigVO, TunnelConnectionVO, IngressRule } from '../lib/tunnel/types'
 
 let { tunnelId, credentialId }: { tunnelId: string; credentialId: number } = $props()
@@ -12,6 +12,7 @@ let tunnel = $state<TunnelVO | null>(null)
 let token = $state<TunnelTokenVO | null>(null)
 let connections = $state<TunnelConnectionVO[]>([])
 let config = $state<TunnelConfigVO | null>(null)
+let tunnelStatus = $state<string | null>(null)
 let loading = $state(false)
 let error = $state<string | null>(null)
 let activeTab = $state<'details' | 'config' | 'connections' | 'token'>('details')
@@ -32,11 +33,12 @@ function cleanErrorMessage(message: string): string {
     loading = true
     error = null
     try {
-      const [tunnelRes, tokenRes, connectionsRes, configRes] = await Promise.all([
+      const [tunnelRes, tokenRes, connectionsRes, configRes, statusRes] = await Promise.all([
         getTunnel(tunnelId, { credential_id: credentialId }),
         getTunnelToken(tunnelId, { credential_id: credentialId }),
         listTunnelConnections(tunnelId, { credential_id: credentialId }),
-        getTunnelConfig(tunnelId, { credential_id: credentialId })
+        getTunnelConfig(tunnelId, { credential_id: credentialId }),
+        getTunnelStatus(tunnelId, { credential_id: credentialId })
       ])
 
       if (tunnelRes.code === 0 && tunnelRes.data) {
@@ -59,6 +61,10 @@ if (configRes.code === 0 && configRes.data) {
   ingressRules = config.config.ingress || []
   configText = JSON.stringify(config.config, null, 2)
 }
+
+      if (statusRes.code === 0 && statusRes.data) {
+        tunnelStatus = statusRes.data.status
+      }
     } catch (err) {
       error = '加载隧道详情失败'
       console.error('Failed to load tunnel details:', err)
@@ -107,6 +113,42 @@ async function handleSaveConfig() {
     console.error('Failed to save config:', err)
   } finally {
     savingConfig = false
+  }
+}
+
+async function handleStartTunnel() {
+  loading = true
+  error = null
+  try {
+    const response = await startTunnel(tunnelId, { credential_id: credentialId })
+    if (response.code === 0) {
+      tunnelStatus = 'running'
+    } else {
+      error = response.message || '启动隧道失败'
+    }
+  } catch (err) {
+    error = '启动隧道失败'
+    console.error('Failed to start tunnel:', err)
+  } finally {
+    loading = false
+  }
+}
+
+async function handleStopTunnel() {
+  loading = true
+  error = null
+  try {
+    const response = await stopTunnel(tunnelId, { credential_id: credentialId })
+    if (response.code === 0) {
+      tunnelStatus = 'stopped'
+    } else {
+      error = response.message || '停止隧道失败'
+    }
+  } catch (err) {
+    error = '停止隧道失败'
+    console.error('Failed to stop tunnel:', err)
+  } finally {
+    loading = false
   }
 }
 
@@ -212,9 +254,33 @@ function handleDrop(event: DragEvent, index: number) {
             <p class="text-sm text-gray-500">ID: {tunnel.id}</p>
           </div>
         </div>
-        <span class="px-3 py-1 text-sm font-medium rounded-full {tunnel.status === 'healthy' ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'}">
-          {tunnel.status}
-        </span>
+        <div class="flex items-center space-x-3">
+          <span class="px-3 py-1 text-sm font-medium rounded-full {tunnel.status === 'healthy' ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'}">
+            {tunnel.status}
+          </span>
+          {#if tunnelStatus}
+            <span class="px-3 py-1 text-sm font-medium rounded-full {tunnelStatus === 'running' ? 'bg-blue-100 text-blue-800' : 'bg-gray-100 text-gray-800'}">
+              {tunnelStatus === 'running' ? '运行中' : '已停止'}
+            </span>
+          {/if}
+          {#if tunnelStatus === 'running'}
+            <PrimaryButton onclick={handleStopTunnel} disabled={loading} class="bg-orange-600 hover:bg-orange-700">
+              <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 9v6m4-6v6" />
+              </svg>
+              停止
+            </PrimaryButton>
+          {:else if tunnelStatus === 'stopped'}
+            <PrimaryButton onclick={handleStartTunnel} disabled={loading} class="bg-green-600 hover:bg-green-700">
+              <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z" />
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+              启动
+            </PrimaryButton>
+          {/if}
+        </div>
       </div>
 
       <div class="grid grid-cols-1 md:grid-cols-3 gap-4">

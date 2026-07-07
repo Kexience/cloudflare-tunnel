@@ -3,6 +3,36 @@
   import { navigate } from 'svelte-routing'
   import { Layout } from '../lib/layout'
   import { QuickActionButton, StatCard } from '../lib/components'
+  import { getDashboardStats } from '../lib/tunnel/api'
+  import type { DashboardStatsVO } from '../lib/tunnel/types'
+
+  let stats = $state<DashboardStatsVO | null>(null)
+  let loading = $state(false)
+
+  function formatBytes(bytes: number): string {
+    if (bytes === 0) return '0 B'
+    const units = ['B', 'KB', 'MB', 'GB', 'TB']
+    const i = Math.floor(Math.log(bytes) / Math.log(1024))
+    return `${(bytes / Math.pow(1024, i)).toFixed(2)} ${units[i]}`
+  }
+
+  async function loadStats() {
+    loading = true
+    try {
+      const response = await getDashboardStats()
+      if (response.code === 0 && response.data) {
+        stats = response.data
+      }
+    } catch (err) {
+      console.error('Failed to load dashboard stats:', err)
+    } finally {
+      loading = false
+    }
+  }
+
+  $effect(() => {
+    loadStats()
+  })
 </script>
 
 <Layout title="欢迎回来，{$currentUser?.nickname || '用户'}！" subtitle="管理您的 Cloudflare Tunnel 配置和状态">
@@ -14,7 +44,9 @@
       description="所有隧道正常运行"
     >
       {#snippet badge()}
-        <span class="px-3 py-1 bg-green-100 text-green-800 text-xs font-medium rounded-full">0 运行中</span>
+        <span class="px-3 py-1 bg-green-100 text-green-800 text-xs font-medium rounded-full">
+          {stats?.running_count ?? 0} 运行中
+        </span>
       {/snippet}
       <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
     </StatCard>
@@ -26,7 +58,7 @@
       description="已配置的隧道总数"
     >
       {#snippet badge()}
-        <span class="text-2xl font-bold text-gray-900">0</span>
+        <span class="text-2xl font-bold text-gray-900">{stats?.total_count ?? 0}</span>
       {/snippet}
       <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
     </StatCard>
@@ -34,11 +66,35 @@
     <StatCard
       iconGradientFrom="from-purple-500"
       iconGradientTo="to-pink-500"
-      title="流量使用"
-      description="本月已使用流量"
+      title="入站流量"
+      description="接收的数据量"
     >
       {#snippet badge()}
-        <span class="text-2xl font-bold text-gray-900">0 GB</span>
+        <span class="text-2xl font-bold text-gray-900">{formatBytes(stats?.bytes_in ?? 0)}</span>
+      {/snippet}
+      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 14l-7 7m0 0l-7-7m7 7V3" />
+    </StatCard>
+
+    <StatCard
+      iconGradientFrom="from-orange-500"
+      iconGradientTo="to-red-500"
+      title="出站流量"
+      description="发送的数据量"
+    >
+      {#snippet badge()}
+        <span class="text-2xl font-bold text-gray-900">{formatBytes(stats?.bytes_out ?? 0)}</span>
+      {/snippet}
+      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 10l7-7m0 0l7 7m-7-7v18" />
+    </StatCard>
+
+    <StatCard
+      iconGradientFrom="from-indigo-500"
+      iconGradientTo="to-violet-500"
+      title="总请求数"
+      description="处理的请求总数"
+    >
+      {#snippet badge()}
+        <span class="text-2xl font-bold text-gray-900">{stats?.total_requests ?? 0}</span>
       {/snippet}
       <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z" />
     </StatCard>

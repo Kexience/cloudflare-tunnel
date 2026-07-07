@@ -111,6 +111,31 @@ export interface GetTunnelConfigQuery {
   credential_id: number
 }
 
+export interface TunnelStatusVO {
+  tunnel_id: string
+  status: string
+}
+
+export interface StartTunnelQuery {
+  credential_id: number
+}
+
+export interface StopTunnelQuery {
+  credential_id: number
+}
+
+export interface GetTunnelStatusQuery {
+  credential_id: number
+}
+
+export interface DashboardStatsVO {
+  running_count: number
+  total_count: number
+  bytes_in: number
+  bytes_out: number
+  total_requests: number
+}
+
 export interface ApiResponse<T> {
   code: number
   message: string

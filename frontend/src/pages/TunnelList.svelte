@@ -2,12 +2,13 @@
   import { navigate } from 'svelte-routing'
   import { Layout } from '../lib/layout'
   import { PrimaryButton, SecondaryButton, TunnelItem } from '../lib/components'
-  import { listTunnels, createTunnel, deleteTunnel } from '../lib/tunnel/api'
+  import { listTunnels, createTunnel, deleteTunnel, startTunnel, stopTunnel, getTunnelStatus } from '../lib/tunnel/api'
   import { getCredentials } from '../lib/config/api'
   import type { TunnelVO, CreateTunnelRequest } from '../lib/tunnel/types'
   import type { Credential } from '../lib/config/types'
 
   let tunnels = $state<TunnelVO[]>([])
+  let tunnelStatuses = $state<Record<string, string>>({})
   let credentials = $state<Credential[]>([])
   let loading = $state(false)
   let error = $state<string | null>(null)
@@ -37,6 +38,7 @@
       const response = await listTunnels({ credential_id: selectedCredentialId })
       if (response.code === 0 && response.data) {
         tunnels = response.data
+        await loadTunnelStatuses()
       } else {
         error = response.message || '加载隧道列表失败'
       }
@@ -46,6 +48,24 @@
     } finally {
       loading = false
     }
+  }
+
+  async function loadTunnelStatuses() {
+    if (!selectedCredentialId) return
+    const statuses: Record<string, string> = {}
+    await Promise.all(
+      tunnels.map(async (tunnel) => {
+        try {
+          const response = await getTunnelStatus(tunnel.id, { credential_id: selectedCredentialId! })
+          if (response.code === 0 && response.data) {
+            statuses[tunnel.id] = response.data.status
+          }
+        } catch (err) {
+          console.error(`Failed to load status for tunnel ${tunnel.id}:`, err)
+        }
+      })
+    )
+    tunnelStatuses = statuses
   }
 
   async function handleCreateTunnel() {
@@ -88,6 +108,44 @@
     } catch (err) {
       error = '删除隧道失败'
       console.error('Failed to delete tunnel:', err)
+    } finally {
+      loading = false
+    }
+  }
+
+  async function handleStartTunnel(tunnelId: string) {
+    if (!selectedCredentialId) return
+    loading = true
+    error = null
+    try {
+      const response = await startTunnel(tunnelId, { credential_id: selectedCredentialId })
+      if (response.code === 0) {
+        await loadTunnelStatuses()
+      } else {
+        error = response.message || '启动隧道失败'
+      }
+    } catch (err) {
+      error = '启动隧道失败'
+      console.error('Failed to start tunnel:', err)
+    } finally {
+      loading = false
+    }
+  }
+
+  async function handleStopTunnel(tunnelId: string) {
+    if (!selectedCredentialId) return
+    loading = true
+    error = null
+    try {
+      const response = await stopTunnel(tunnelId, { credential_id: selectedCredentialId })
+      if (response.code === 0) {
+        await loadTunnelStatuses()
+      } else {
+        error = response.message || '停止隧道失败'
+      }
+    } catch (err) {
+      error = '停止隧道失败'
+      console.error('Failed to stop tunnel:', err)
     } finally {
       loading = false
     }
@@ -188,8 +246,11 @@
           {#each tunnels as tunnel}
             <TunnelItem
               {tunnel}
+              status={tunnelStatuses[tunnel.id]}
               onView={(id) => navigate(`/tunnels/${id}/${selectedCredentialId}`)}
               onDelete={handleDeleteTunnel}
+              onStart={handleStartTunnel}
+              onStop={handleStopTunnel}
             />
           {/each}
         </div>

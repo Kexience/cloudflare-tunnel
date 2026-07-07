@@ -3,12 +3,18 @@
 
   let {
     tunnel,
+    status,
     onView,
-    onDelete
+    onDelete,
+    onStart,
+    onStop
   }: {
     tunnel: TunnelVO
+    status?: string
     onView: (tunnelId: string) => void
     onDelete: (tunnelId: string) => void
+    onStart: (tunnelId: string) => void
+    onStop: (tunnelId: string) => void
   } = $props()
 </script>
 
@@ -29,6 +35,34 @@
       <span class="px-2 py-1 text-xs font-medium rounded-full {tunnel.status === 'healthy' ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'}">
         {tunnel.status}
       </span>
+      {#if status}
+        <span class="px-2 py-1 text-xs font-medium rounded-full {status === 'running' ? 'bg-blue-100 text-blue-800' : 'bg-gray-100 text-gray-800'}">
+          {status === 'running' ? '运行中' : '已停止'}
+        </span>
+      {/if}
+      {#if status === 'running'}
+        <button
+          onclick={() => onStop(tunnel.id)}
+          class="p-2 text-orange-600 hover:text-orange-900 hover:bg-orange-50 rounded-md transition duration-200"
+          title="停止隧道"
+        >
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 9v6m4-6v6" />
+          </svg>
+        </button>
+      {:else if status === 'stopped'}
+        <button
+          onclick={() => onStart(tunnel.id)}
+          class="p-2 text-green-600 hover:text-green-900 hover:bg-green-50 rounded-md transition duration-200"
+          title="启动隧道"
+        >
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z" />
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+          </svg>
+        </button>
+      {/if}
       <button
         onclick={() => onView(tunnel.id)}
         class="p-2 text-blue-600 hover:text-blue-900 hover:bg-blue-50 rounded-md transition duration-200"

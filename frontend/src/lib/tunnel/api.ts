@@ -3,6 +3,8 @@ import type {
   TunnelVO,
   TunnelConfigVO,
   TunnelTokenVO,
+  TunnelStatusVO,
+  DashboardStatsVO,
   CreateTunnelRequest,
   UpdateTunnelConfigRequest,
   DNSRecordVO,
@@ -16,6 +18,9 @@ import type {
   GetTunnelTokenQuery,
   ListTunnelConnectionsQuery,
   GetTunnelConfigQuery,
+  StartTunnelQuery,
+  StopTunnelQuery,
+  GetTunnelStatusQuery,
   ApiResponse
 } from './types'
 
@@ -59,6 +64,21 @@ export async function updateTunnelConfig(id: string, data: UpdateTunnelConfigReq
   return response.data
 }
 
+export async function startTunnel(id: string, query: StartTunnelQuery): Promise<ApiResponse<null>> {
+  const response = await api.post<ApiResponse<null>>(`/v1/tunnels/${id}/start`, null, { params: query })
+  return response.data
+}
+
+export async function stopTunnel(id: string, query: StopTunnelQuery): Promise<ApiResponse<null>> {
+  const response = await api.post<ApiResponse<null>>(`/v1/tunnels/${id}/stop`, null, { params: query })
+  return response.data
+}
+
+export async function getTunnelStatus(id: string, query: GetTunnelStatusQuery): Promise<ApiResponse<TunnelStatusVO>> {
+  const response = await api.get<ApiResponse<TunnelStatusVO>>(`/v1/tunnels/${id}/status`, { params: query })
+  return response.data
+}
+
 export async function listDNSRecords(query: ListDNSRecordsRequest): Promise<ApiResponse<DNSRecordVO[]>> {
   const response = await api.get<ApiResponse<DNSRecordVO[]>>('/v1/dns/records', { params: query })
   return response.data
@@ -76,5 +96,10 @@ export async function updateDNSRecord(id: string, data: UpdateDNSRecordRequest):
 
 export async function deleteDNSRecord(id: string, data: DeleteDNSRecordRequest): Promise<ApiResponse<null>> {
   const response = await api.delete<ApiResponse<null>>(`/v1/dns/records/${id}`, { data })
+  return response.data
+}
+
+export async function getDashboardStats(): Promise<ApiResponse<DashboardStatsVO>> {
+  const response = await api.get<ApiResponse<DashboardStatsVO>>('/v1/dashboard/stats')
   return response.data
 }
