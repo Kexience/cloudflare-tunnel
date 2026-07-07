@@ -4,6 +4,9 @@ package errno
 // 格式：模块前缀 + 错误编号
 // 100xx - 通用错误
 // 200xx - 用户模块
+// 300xx - 凭证模块
+// 400xx - 隧道模块
+// 500xx - DNS 模块
 
 var (
 	// 通用
@@ -27,6 +30,18 @@ var (
 	ErrCredentialEncrypt  = &Errno{Code: 30003, Message: "凭证加密失败"}
 	ErrCredentialDecrypt  = &Errno{Code: 30004, Message: "凭证解密失败"}
 	ErrCredentialInvalid  = &Errno{Code: 30005, Message: "凭证验证失败"}
+
+	// 隧道模块
+	ErrTunnelNotFound     = &Errno{Code: 40001, Message: "隧道不存在"}
+	ErrTunnelCreateFailed = &Errno{Code: 40002, Message: "创建隧道失败"}
+	ErrTunnelDeleteFailed = &Errno{Code: 40003, Message: "删除隧道失败"}
+	ErrTunnelConfigFailed = &Errno{Code: 40004, Message: "隧道配置操作失败"}
+
+	// DNS 模块
+	ErrDNSRecordNotFound = &Errno{Code: 50001, Message: "DNS 记录不存在"}
+	ErrDNSRecordCreate   = &Errno{Code: 50002, Message: "创建 DNS 记录失败"}
+	ErrDNSRecordUpdate   = &Errno{Code: 50003, Message: "更新 DNS 记录失败"}
+	ErrDNSRecordDelete   = &Errno{Code: 50004, Message: "删除 DNS 记录失败"}
 )
 
 type Errno struct {
