@@ -35,7 +35,6 @@ if [ ! -f .env ]; then
     fi
     
     echo -e "${GREEN}.env 文件已自动生成${NC}"
-    echo -e "${YELLOW}请编辑 .env 文件，将 GITHUB_USER 修改为你的 GitHub 用户名${NC}"
     echo ""
 fi
 
@@ -50,11 +49,6 @@ fi
 
 if [ -z "$CREDENTIAL_SECRET" ]; then
     echo -e "${RED}错误: CREDENTIAL_SECRET 未设置，请编辑 .env 文件${NC}"
-    exit 1
-fi
-
-if [ "$GITHUB_USER" = "your-username" ]; then
-    echo -e "${RED}错误: 请将 .env 中的 GITHUB_USER 修改为你的 GitHub 用户名${NC}"
     exit 1
 fi
 
