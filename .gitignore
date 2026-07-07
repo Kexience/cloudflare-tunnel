@@ -108,3 +108,6 @@ out/
 backend/config/config.yaml
 backend/web
 *.db
+
+# cloudflared binaries
+backend/pkg/cloudflare/bin/
