@@ -109,7 +109,7 @@ func TestValidateCredential(t *testing.T) {
 
 		r.ServeHTTP(w, req)
 
-		assert.Equal(t, http.StatusOK, w.Code)
+		assert.Equal(t, http.StatusBadRequest, w.Code)
 		resp := parseResponse(t, w.Body)
 		assert.Equal(t, errno.ErrParam.Code, resp.Code)
 	})
@@ -124,7 +124,7 @@ func TestValidateCredential(t *testing.T) {
 
 		r.ServeHTTP(w, req)
 
-		assert.Equal(t, http.StatusOK, w.Code)
+		assert.Equal(t, http.StatusUnauthorized, w.Code)
 		resp := parseResponse(t, w.Body)
 		assert.Equal(t, errno.ErrUnauthorized.Code, resp.Code)
 	})
@@ -196,7 +196,7 @@ func TestDeleteCredential(t *testing.T) {
 
 		r.ServeHTTP(w, req)
 
-		assert.Equal(t, http.StatusOK, w.Code)
+		assert.Equal(t, http.StatusBadRequest, w.Code)
 		resp := parseResponse(t, w.Body)
 		assert.Equal(t, errno.ErrParam.Code, resp.Code)
 	})

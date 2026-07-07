@@ -5,6 +5,7 @@ import (
 	"cloudflared-tunnel/internal/infra/logger"
 	"cloudflared-tunnel/internal/module/credential/repo"
 	v1 "cloudflared-tunnel/internal/module/credential/ui/api/req/v1"
+	"cloudflared-tunnel/internal/types"
 	"cloudflared-tunnel/pkg/cloudflare"
 	"cloudflared-tunnel/pkg/crypto"
 	"cloudflared-tunnel/pkg/errno"
@@ -13,11 +14,11 @@ import (
 type svc struct {
 	repo      repo.CredentialRepo
 	log       logger.Logger
-	secret    []byte
+	secret    types.CredentialSecret
 	validator cloudflare.Validator
 }
 
-func NewCredentialSvc(repo repo.CredentialRepo, log logger.Logger, secret []byte, validator cloudflare.Validator) CredentialSvc {
+func NewCredentialSvc(repo repo.CredentialRepo, log logger.Logger, secret types.CredentialSecret, validator cloudflare.Validator) CredentialSvc {
 	return &svc{
 		repo:      repo,
 		log:       log,
@@ -114,7 +115,7 @@ func (s *svc) GetCredentials(userID int64) ([]*v1.CredentialVO, error) {
 			s.log.Error("解密 API Token 失败", "id", cred.ID, "error", err)
 			decryptedToken = "****"
 		}
-		vos[i] = s.toVO(cred, decryptedToken)
+		vos[i] = s.toVOMasked(cred, decryptedToken)
 	}
 
 	return vos, nil
@@ -236,4 +237,23 @@ func (s *svc) toVO(cred *ent.Credential, apiToken string) *v1.CredentialVO {
 		CreatedAt: cred.CreatedAt,
 		UpdatedAt: cred.UpdatedAt,
 	}
+}
+
+func (s *svc) toVOMasked(cred *ent.Credential, apiToken string) *v1.CredentialVO {
+	return &v1.CredentialVO{
+		ID:        cred.ID,
+		Name:      cred.Name,
+		ApiToken:  maskToken(apiToken),
+		AccountID: cred.AccountID,
+		IsDefault: cred.IsDefault,
+		CreatedAt: cred.CreatedAt,
+		UpdatedAt: cred.UpdatedAt,
+	}
+}
+
+func maskToken(token string) string {
+	if len(token) <= 8 {
+		return "****"
+	}
+	return token[:4] + "****" + token[len(token)-4:]
 }
