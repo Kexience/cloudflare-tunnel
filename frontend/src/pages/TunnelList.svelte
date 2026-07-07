@@ -1,6 +1,7 @@
 <script lang="ts">
   import { navigate } from 'svelte-routing'
   import { Layout } from '../lib/layout'
+  import { PrimaryButton, SecondaryButton } from '../lib/components'
   import { listTunnels, createTunnel, deleteTunnel } from '../lib/tunnel/api'
   import { getCredentials } from '../lib/config/api'
   import type { TunnelVO, CreateTunnelRequest } from '../lib/tunnel/types'
@@ -106,15 +107,12 @@
 <Layout title="隧道管理" subtitle="管理您的 Cloudflare Tunnel 配置和状态">
   <div class="flex items-center justify-between mb-8">
     <div></div>
-    <button
-      onclick={() => showCreateForm = true}
-      class="inline-flex items-center px-5 py-2.5 bg-linear-to-r from-indigo-600 to-purple-600 text-white font-medium rounded-xl shadow-lg hover:shadow-xl transition duration-200 transform hover:scale-[1.02]"
-    >
+    <PrimaryButton onclick={() => showCreateForm = true}>
       <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
       </svg>
       创建隧道
-    </button>
+    </PrimaryButton>
   </div>
 
   <!-- 筛选条件 -->
@@ -133,13 +131,14 @@
         </select>
       </div>
       <div class="flex items-end">
-        <button
+        <PrimaryButton
           onclick={loadTunnels}
           disabled={loading || !selectedCredentialId}
-          class="w-full px-4 py-2 text-sm font-medium text-white bg-indigo-600 border border-transparent rounded-md hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50"
+          loading={loading}
+          loadingText="加载中..."
         >
-          {loading ? '加载中...' : '查询隧道'}
-        </button>
+          查询隧道
+        </PrimaryButton>
       </div>
     </div>
   </div>
@@ -268,20 +267,10 @@
               />
             </div>
             <div class="flex justify-end space-x-3">
-              <button
-                type="button"
-                onclick={() => showCreateForm = false}
-                class="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 border border-gray-300 rounded-md hover:bg-gray-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
-              >
-                取消
-              </button>
-              <button
-                type="submit"
-                disabled={loading}
-                class="px-4 py-2 text-sm font-medium text-white bg-indigo-600 border border-transparent rounded-md hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50"
-              >
-                {loading ? '创建中...' : '创建'}
-              </button>
+              <SecondaryButton onclick={() => showCreateForm = false} />
+              <PrimaryButton type="submit" loading={loading} loadingText="创建中...">
+                创建
+              </PrimaryButton>
             </div>
           </form>
         </div>

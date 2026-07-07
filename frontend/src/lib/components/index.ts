@@ -1,2 +1,5 @@
 export { default as QuickActionButton } from './QuickActionButton.svelte'
 export { default as StatCard } from './StatCard.svelte'
+export { default as PrimaryButton } from './PrimaryButton.svelte'
+export { default as SecondaryButton } from './SecondaryButton.svelte'
+export { default as SmallButton } from './SmallButton.svelte'

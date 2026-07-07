@@ -2,6 +2,7 @@
 import { onMount } from 'svelte'
 import { navigate } from 'svelte-routing'
 import { Layout } from '../lib/layout'
+import { PrimaryButton, SecondaryButton } from '../lib/components'
 import { getTunnel, getTunnelToken, listTunnelConnections, getTunnelConfig, updateTunnelConfig } from '../lib/tunnel/api'
 import type { TunnelVO, TunnelTokenVO, TunnelConfigVO, TunnelConnectionVO, IngressRule } from '../lib/tunnel/types'
 
@@ -293,26 +294,14 @@ function handleDrop(event: DragEvent, index: number) {
               <h4 class="text-lg font-semibold text-gray-900">隧道配置</h4>
               <div class="flex space-x-2">
                 {#if editingConfig}
-                  <button
-                    onclick={() => editingConfig = false}
-                    class="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition duration-200"
-                  >
-                    取消
-                  </button>
-                  <button
-                    onclick={handleSaveConfig}
-                    disabled={savingConfig}
-                    class="px-4 py-2 text-sm font-medium text-white bg-indigo-600 rounded-lg hover:bg-indigo-700 transition duration-200 disabled:opacity-50"
-                  >
-                    {savingConfig ? '保存中...' : '保存'}
-                  </button>
+                  <SecondaryButton onclick={() => editingConfig = false} />
+                  <PrimaryButton onclick={handleSaveConfig} loading={savingConfig} loadingText="保存中...">
+                    保存
+                  </PrimaryButton>
                 {:else}
-                  <button
-                    onclick={() => editingConfig = true}
-                    class="px-4 py-2 text-sm font-medium text-white bg-indigo-600 rounded-lg hover:bg-indigo-700 transition duration-200"
-                  >
+                  <PrimaryButton onclick={() => editingConfig = true}>
                     编辑配置
-                  </button>
+                  </PrimaryButton>
                 {/if}
               </div>
             </div>
@@ -419,13 +408,12 @@ function handleDrop(event: DragEvent, index: number) {
                           />
                         </div>
                       </div>
-                      <button
+                      <PrimaryButton
                         onclick={addIngressRule}
                         disabled={!newRule.hostname || !newRule.service}
-                        class="mt-5 px-4 py-2 text-sm font-medium text-white bg-indigo-600 rounded-md hover:bg-indigo-700 transition duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
                       >
                         添加
-                      </button>
+                      </PrimaryButton>
                     </div>
                   </div>
                 </div>
@@ -548,12 +536,9 @@ function handleDrop(event: DragEvent, index: number) {
       <h3 class="mt-2 text-sm font-medium text-gray-900">隧道不存在</h3>
       <p class="mt-1 text-sm text-gray-500">无法找到指定的隧道</p>
       <div class="mt-6">
-        <button
-          onclick={() => navigate('/tunnels')}
-          class="inline-flex items-center px-4 py-2 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
-        >
+        <PrimaryButton onclick={() => navigate('/tunnels')}>
           返回隧道列表
-        </button>
+        </PrimaryButton>
       </div>
     </div>
   {/if}

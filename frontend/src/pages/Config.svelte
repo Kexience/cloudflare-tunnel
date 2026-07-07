@@ -1,6 +1,7 @@
 <script lang="ts">
   import { onMount } from 'svelte'
   import { Layout } from '../lib/layout'
+  import { PrimaryButton, SecondaryButton, SmallButton } from '../lib/components'
   import type { Credential, CreateCredentialRequest } from '../lib/config/types'
   import * as configApi from '../lib/config/api'
   import { validateCredential } from '../lib/credential'
@@ -146,15 +147,12 @@
 <Layout title="凭证管理" subtitle="管理您的 Cloudflare API 凭证，用于隧道的创建和管理">
   <div class="flex items-center justify-between mb-8">
     <div></div>
-    <button
-      onclick={openCreate}
-      class="inline-flex items-center px-5 py-2.5 bg-linear-to-r from-indigo-600 to-purple-600 text-white font-medium rounded-xl shadow-lg hover:shadow-xl transition duration-200 transform hover:scale-[1.02]"
-    >
+    <PrimaryButton onclick={openCreate}>
       <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
       </svg>
       添加凭证
-    </button>
+    </PrimaryButton>
   </div>
 
   {#if error}
@@ -187,15 +185,12 @@
       </div>
       <h3 class="text-lg font-semibold text-gray-900 mb-2">暂无凭证</h3>
       <p class="text-gray-500 mb-6">添加您的 Cloudflare API 凭证以开始管理隧道</p>
-      <button
-        onclick={openCreate}
-        class="inline-flex items-center px-5 py-2.5 bg-linear-to-r from-indigo-600 to-purple-600 text-white font-medium rounded-xl shadow-lg hover:shadow-xl transition duration-200"
-      >
+      <PrimaryButton onclick={openCreate}>
         <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
         </svg>
         添加第一个凭证
-      </button>
+      </PrimaryButton>
     </div>
   {:else}
     <div class="space-y-4">
@@ -252,18 +247,14 @@
 
             <div class="flex items-center space-x-2 ml-4 shrink-0">
               {#if !cred.is_default}
-                <button
-                  onclick={() => handleSetDefault(cred.id)}
-                  class="px-3 py-1.5 text-xs font-medium text-indigo-600 bg-indigo-50 rounded-lg hover:bg-indigo-100 transition duration-200"
-                >
+                <SmallButton onclick={() => handleSetDefault(cred.id)} variant="indigo">
                   设为默认
-                </button>
+                </SmallButton>
               {/if}
-              <button
+              <SmallButton
                 onclick={() => handleTestCredential(cred)}
                 disabled={testingId === cred.id}
-                class="px-3 py-1.5 text-xs font-medium text-green-600 bg-green-50 rounded-lg hover:bg-green-100 transition duration-200 disabled:opacity-50"
-                title="测试凭证"
+                variant="green"
               >
                 {#if testingId === cred.id}
                   <span class="inline-flex items-center">
@@ -276,7 +267,7 @@
                 {:else}
                   测试
                 {/if}
-              </button>
+              </SmallButton>
               <button
                 onclick={() => openEdit(cred)}
                 class="p-2 text-gray-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition duration-200"
@@ -368,30 +359,10 @@
           </label>
 
           <div class="flex justify-end space-x-3 pt-4">
-            <button
-              type="button"
-              onclick={closeModal}
-              class="px-4 py-2.5 text-sm font-medium text-gray-700 bg-gray-100 rounded-xl hover:bg-gray-200 transition duration-200"
-            >
-              取消
-            </button>
-            <button
-              type="submit"
-              disabled={saving}
-              class="px-5 py-2.5 text-sm font-medium text-white bg-linear-to-r from-indigo-600 to-purple-600 rounded-xl shadow-lg hover:shadow-xl transition duration-200 disabled:opacity-50"
-            >
-              {#if saving}
-                <span class="inline-flex items-center">
-                  <svg class="animate-spin -ml-1 mr-2 h-4 w-4 text-white" fill="none" viewBox="0 0 24 24">
-                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                  </svg>
-                  保存中...
-                </span>
-              {:else}
-                {editingId !== null ? '保存' : '添加'}
-              {/if}
-            </button>
+            <SecondaryButton onclick={closeModal} />
+            <PrimaryButton type="submit" loading={saving} loadingText="保存中...">
+              {editingId !== null ? '保存' : '添加'}
+            </PrimaryButton>
           </div>
         </form>
       </div>
