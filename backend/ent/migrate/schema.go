@@ -9,6 +9,38 @@ import (
 )
 
 var (
+	// CredentialsColumns holds the columns for the "credentials" table.
+	CredentialsColumns = []*schema.Column{
+		{Name: "id", Type: field.TypeInt64, Increment: true, Comment: "凭证ID"},
+		{Name: "name", Type: field.TypeString, Comment: "凭证名称"},
+		{Name: "api_token", Type: field.TypeString, Comment: "加密后的 API Token"},
+		{Name: "account_id", Type: field.TypeString, Comment: "Cloudflare Account ID"},
+		{Name: "is_default", Type: field.TypeBool, Comment: "是否为默认凭证", Default: false},
+		{Name: "created_at", Type: field.TypeTime, Comment: "创建时间"},
+		{Name: "updated_at", Type: field.TypeTime, Comment: "更新时间"},
+		{Name: "user_credentials", Type: field.TypeInt64},
+	}
+	// CredentialsTable holds the schema information for the "credentials" table.
+	CredentialsTable = &schema.Table{
+		Name:       "credentials",
+		Columns:    CredentialsColumns,
+		PrimaryKey: []*schema.Column{CredentialsColumns[0]},
+		ForeignKeys: []*schema.ForeignKey{
+			{
+				Symbol:     "credentials_users_credentials",
+				Columns:    []*schema.Column{CredentialsColumns[7]},
+				RefColumns: []*schema.Column{UsersColumns[0]},
+				OnDelete:   schema.NoAction,
+			},
+		},
+		Indexes: []*schema.Index{
+			{
+				Name:    "credential_user_credentials",
+				Unique:  false,
+				Columns: []*schema.Column{CredentialsColumns[7]},
+			},
+		},
+	}
 	// UsersColumns holds the columns for the "users" table.
 	UsersColumns = []*schema.Column{
 		{Name: "id", Type: field.TypeInt64, Increment: true, Comment: "用户ID"},
@@ -37,11 +69,17 @@ var (
 	}
 	// Tables holds all the tables in the schema.
 	Tables = []*schema.Table{
+		CredentialsTable,
 		UsersTable,
 	}
 )
 
 func init() {
+	CredentialsTable.ForeignKeys[0].RefTable = UsersTable
+	CredentialsTable.Annotation = &entsql.Annotation{
+		Table:   "credentials",
+		Options: "COMMENT='Cloudflare 凭证表'",
+	}
 	UsersTable.Annotation = &entsql.Annotation{
 		Table:   "users",
 		Options: "COMMENT='用户表'",

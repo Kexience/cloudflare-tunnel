@@ -3,6 +3,7 @@
 package ent
 
 import (
+	"cloudflared-tunnel/ent/credential"
 	"cloudflared-tunnel/ent/user"
 	"context"
 	"errors"
@@ -47,6 +48,21 @@ func (_c *UserCreate) SetEmail(v string) *UserCreate {
 func (_c *UserCreate) SetID(v int64) *UserCreate {
 	_c.mutation.SetID(v)
 	return _c
+}
+
+// AddCredentialIDs adds the "credentials" edge to the Credential entity by IDs.
+func (_c *UserCreate) AddCredentialIDs(ids ...int64) *UserCreate {
+	_c.mutation.AddCredentialIDs(ids...)
+	return _c
+}
+
+// AddCredentials adds the "credentials" edges to the Credential entity.
+func (_c *UserCreate) AddCredentials(v ...*Credential) *UserCreate {
+	ids := make([]int64, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _c.AddCredentialIDs(ids...)
 }
 
 // Mutation returns the UserMutation object of the builder.
@@ -167,6 +183,22 @@ func (_c *UserCreate) createSpec() (*User, *sqlgraph.CreateSpec) {
 	if value, ok := _c.mutation.Email(); ok {
 		_spec.SetField(user.FieldEmail, field.TypeString, value)
 		_node.Email = value
+	}
+	if nodes := _c.mutation.CredentialsIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   user.CredentialsTable,
+			Columns: []string{user.CredentialsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(credential.FieldID, field.TypeInt64),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges = append(_spec.Edges, edge)
 	}
 	return _node, _spec
 }

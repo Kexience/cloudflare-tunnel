@@ -1,9 +1,10 @@
 package config
 
 type Config struct {
-	App AppConfig `mapstructure:"app"`
-	DB  DBConfig  `mapstructure:"db"`
-	JWT JWTConfig `mapstructure:"jwt"`
+	App        AppConfig        `mapstructure:"app"`
+	DB         DBConfig         `mapstructure:"db"`
+	JWT        JWTConfig        `mapstructure:"jwt"`
+	Credential CredentialConfig `mapstructure:"credential"`
 }
 
 type AppConfig struct {
@@ -20,4 +21,8 @@ type DBConfig struct {
 type JWTConfig struct {
 	Secret     string `mapstructure:"secret"`
 	ExpireHour int    `mapstructure:"expire_hour"`
+}
+
+type CredentialConfig struct {
+	Secret string `mapstructure:"secret"`
 }

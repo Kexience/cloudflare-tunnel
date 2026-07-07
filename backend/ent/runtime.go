@@ -3,14 +3,48 @@
 package ent
 
 import (
+	"cloudflared-tunnel/ent/credential"
 	"cloudflared-tunnel/ent/schema"
 	"cloudflared-tunnel/ent/user"
+	"time"
 )
 
 // The init function reads all schema descriptors with runtime code
 // (default values, validators, hooks and policies) and stitches it
 // to their package variables.
 func init() {
+	credentialFields := schema.Credential{}.Fields()
+	_ = credentialFields
+	// credentialDescName is the schema descriptor for name field.
+	credentialDescName := credentialFields[1].Descriptor()
+	// credential.NameValidator is a validator for the "name" field. It is called by the builders before save.
+	credential.NameValidator = credentialDescName.Validators[0].(func(string) error)
+	// credentialDescAPIToken is the schema descriptor for api_token field.
+	credentialDescAPIToken := credentialFields[2].Descriptor()
+	// credential.APITokenValidator is a validator for the "api_token" field. It is called by the builders before save.
+	credential.APITokenValidator = credentialDescAPIToken.Validators[0].(func(string) error)
+	// credentialDescAccountID is the schema descriptor for account_id field.
+	credentialDescAccountID := credentialFields[3].Descriptor()
+	// credential.AccountIDValidator is a validator for the "account_id" field. It is called by the builders before save.
+	credential.AccountIDValidator = credentialDescAccountID.Validators[0].(func(string) error)
+	// credentialDescIsDefault is the schema descriptor for is_default field.
+	credentialDescIsDefault := credentialFields[4].Descriptor()
+	// credential.DefaultIsDefault holds the default value on creation for the is_default field.
+	credential.DefaultIsDefault = credentialDescIsDefault.Default.(bool)
+	// credentialDescCreatedAt is the schema descriptor for created_at field.
+	credentialDescCreatedAt := credentialFields[5].Descriptor()
+	// credential.DefaultCreatedAt holds the default value on creation for the created_at field.
+	credential.DefaultCreatedAt = credentialDescCreatedAt.Default.(func() time.Time)
+	// credentialDescUpdatedAt is the schema descriptor for updated_at field.
+	credentialDescUpdatedAt := credentialFields[6].Descriptor()
+	// credential.DefaultUpdatedAt holds the default value on creation for the updated_at field.
+	credential.DefaultUpdatedAt = credentialDescUpdatedAt.Default.(func() time.Time)
+	// credential.UpdateDefaultUpdatedAt holds the default value on update for the updated_at field.
+	credential.UpdateDefaultUpdatedAt = credentialDescUpdatedAt.UpdateDefault.(func() time.Time)
+	// credentialDescID is the schema descriptor for id field.
+	credentialDescID := credentialFields[0].Descriptor()
+	// credential.IDValidator is a validator for the "id" field. It is called by the builders before save.
+	credential.IDValidator = credentialDescID.Validators[0].(func(int64) error)
 	userFields := schema.User{}.Fields()
 	_ = userFields
 	// userDescNickname is the schema descriptor for nickname field.

@@ -20,6 +20,12 @@ var (
 	// 用户模块
 	ErrUserNotFound = &Errno{Code: 20001, Message: "用户不存在"}
 	ErrUserExists   = &Errno{Code: 20002, Message: "用户已存在"}
+
+	// 凭证模块
+	ErrCredentialNotFound = &Errno{Code: 30001, Message: "凭证不存在"}
+	ErrCredentialExists   = &Errno{Code: 30002, Message: "凭证已存在"}
+	ErrCredentialEncrypt  = &Errno{Code: 30003, Message: "凭证加密失败"}
+	ErrCredentialDecrypt  = &Errno{Code: 30004, Message: "凭证解密失败"}
 )
 
 type Errno struct {
