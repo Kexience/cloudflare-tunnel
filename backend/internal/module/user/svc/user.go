@@ -17,12 +17,20 @@ func (s *svc) Register(nickname, username, password, email string) (*v1.UserVO, 
 		return nil, errno.ErrUserExists
 	}
 
-	existingUser, _ := s.repo.GetUserByUsername(username)
+	existingUser, err := s.repo.GetUserByUsername(username)
+	if err != nil && !ent.IsNotFound(err) {
+		s.log.Error("查询用户名失败", "error", err)
+		return nil, errno.ErrDB
+	}
 	if existingUser != nil {
 		return nil, errno.ErrUserExists.WithMessage("用户名已存在")
 	}
 
-	existingUser, _ = s.repo.GetUserByEmail(email)
+	existingUser, err = s.repo.GetUserByEmail(email)
+	if err != nil && !ent.IsNotFound(err) {
+		s.log.Error("查询邮箱失败", "error", err)
+		return nil, errno.ErrDB
+	}
 	if existingUser != nil {
 		return nil, errno.ErrUserExists.WithMessage("邮箱已存在")
 	}

@@ -1,6 +1,8 @@
 package api
 
 import (
+	"time"
+
 	"cloudflared-tunnel/internal/middleware"
 	"cloudflared-tunnel/internal/module/user/ui/api/ctrl"
 	"cloudflared-tunnel/pkg/core"
@@ -20,8 +22,9 @@ func NewRouter(ctrl *ctrl.Ctrl, jwt *core.JWT) *Router {
 func (r *Router) SetupRoutes(g *gin.Engine) {
 	v1 := g.Group("/v1")
 	{
-		// 公开路由
+		// 公开路由（带速率限制）
 		user := v1.Group("/user")
+		user.Use(middleware.RateLimit(10, time.Minute))
 		{
 			user.POST("/register", r.ctrl.CreateUser)
 			user.POST("/login", r.ctrl.LoginUser)
