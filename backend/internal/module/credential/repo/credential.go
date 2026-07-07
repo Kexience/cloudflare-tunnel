@@ -3,6 +3,7 @@ package repo
 import (
 	"cloudflared-tunnel/ent"
 	"cloudflared-tunnel/ent/credential"
+	"cloudflared-tunnel/ent/credentialtestlog"
 	"cloudflared-tunnel/ent/user"
 	"context"
 )
@@ -121,4 +122,34 @@ func (r *Repo) ClearDefaultByUserID(userID int64) error {
 		return err
 	}
 	return nil
+}
+
+func (r *Repo) CreateTestLog(credentialID int64, status string, errMsg *string) (*ent.CredentialTestLog, error) {
+	ctx := context.Background()
+	create := r.Client.CredentialTestLog.Create().
+		SetStatus(status).
+		SetCredentialID(credentialID)
+	if errMsg != nil {
+		create = create.SetErrorMessage(*errMsg)
+	}
+	log, err := create.Save(ctx)
+	if err != nil {
+		r.Log.Error("创建测试日志失败", "credentialID", credentialID, "error", err)
+		return nil, err
+	}
+	return log, nil
+}
+
+func (r *Repo) GetTestLogsByCredentialID(credentialID int64, limit int) ([]*ent.CredentialTestLog, error) {
+	ctx := context.Background()
+	logs, err := r.Client.CredentialTestLog.Query().
+		Where(credentialtestlog.HasCredentialWith(credential.ID(credentialID))).
+		Order(ent.Desc(credentialtestlog.FieldTestedAt)).
+		Limit(limit).
+		All(ctx)
+	if err != nil {
+		r.Log.Error("查询测试日志失败", "credentialID", credentialID, "error", err)
+		return nil, err
+	}
+	return logs, nil
 }

@@ -19,6 +19,8 @@ type CredentialRepo interface {
 	UpdateCredential(id int64, name, encryptedToken, accountID string, isDefault bool) (*ent.Credential, error)
 	DeleteCredential(id, userID int64) error
 	ClearDefaultByUserID(userID int64) error
+	CreateTestLog(credentialID int64, status string, errMsg *string) (*ent.CredentialTestLog, error)
+	GetTestLogsByCredentialID(credentialID int64, limit int) ([]*ent.CredentialTestLog, error)
 }
 
 func NewCredentialRepo(client *ent.Client, log logger.Logger) CredentialRepo {
