@@ -8,6 +8,19 @@ BIN_DIR="${SCRIPT_DIR}/../pkg/cloudflare/bin"
 
 mkdir -p "${BIN_DIR}"
 
+# 获取目标架构，默认为当前系统架构
+ARCH=${ARCH:-$(uname -m)}
+
+# 标准化架构名称
+case "${ARCH}" in
+    x86_64|amd64)
+        ARCH="amd64"
+        ;;
+    aarch64|arm64)
+        ARCH="arm64"
+        ;;
+esac
+
 download() {
     local os=$1
     local arch=$2
@@ -42,12 +55,9 @@ download() {
     echo "✓ cloudflared-${os}-${arch} downloaded"
 }
 
-download "darwin" "arm64" ".tgz" "true"
-download "darwin" "amd64" ".tgz" "true"
-download "linux" "amd64" "" "false"
-download "linux" "arm64" "" "false"
-download "windows" "amd64" ".exe" "false"
+# 只下载目标架构
+download "linux" "${ARCH}" "" "false"
 
 echo ""
-echo "All cloudflared binaries downloaded to ${BIN_DIR}"
+echo "cloudflared binary downloaded to ${BIN_DIR}"
 ls -lh "${BIN_DIR}"
