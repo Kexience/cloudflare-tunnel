@@ -1,12 +1,15 @@
 <script lang="ts">
-  import { Router, Route, navigate } from 'svelte-routing'
-  import { onMount } from 'svelte'
-  import { authStore, isAuthenticated } from './lib/auth/store'
-  import Login from './pages/Login.svelte'
-  import Register from './pages/Register.svelte'
-  import Dashboard from './pages/Dashboard.svelte'
-  import Config from './pages/Config.svelte'
-  import ProtectedRoute from './lib/auth/ProtectedRoute.svelte'
+import { Router, Route, navigate } from 'svelte-routing'
+import { onMount } from 'svelte'
+import { authStore, isAuthenticated } from './lib/auth/store'
+import Login from './pages/Login.svelte'
+import Register from './pages/Register.svelte'
+import Dashboard from './pages/Dashboard.svelte'
+import Config from './pages/Config.svelte'
+import TunnelList from './pages/TunnelList.svelte'
+import TunnelDetail from './pages/TunnelDetail.svelte'
+import DNSManagement from './pages/DNSManagement.svelte'
+import ProtectedRoute from './lib/auth/ProtectedRoute.svelte'
 
   export let url = ''
 
@@ -42,6 +45,21 @@
     <Route path="/config">
       <ProtectedRoute>
         <Config />
+      </ProtectedRoute>
+    </Route>
+    <Route path="/tunnels">
+      <ProtectedRoute>
+        <TunnelList />
+      </ProtectedRoute>
+    </Route>
+    <Route path="/tunnels/:tunnelId/:credentialId" let:params>
+      <ProtectedRoute>
+        <TunnelDetail tunnelId={params.tunnelId} credentialId={parseInt(params.credentialId)} />
+      </ProtectedRoute>
+    </Route>
+    <Route path="/dns">
+      <ProtectedRoute>
+        <DNSManagement />
       </ProtectedRoute>
     </Route>
     <Route path="/">
