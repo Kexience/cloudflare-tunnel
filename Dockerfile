@@ -1,9 +1,11 @@
-# 构建参数
-ARG JWT_SECRET
-
 # 构建前端静态文件
 FROM node:20-alpine AS frontend-builder
 WORKDIR /app/frontend
+
+# 构建参数：API 基础路径
+ARG VITE_API_BASE_URL=/api
+ENV VITE_API_BASE_URL=${VITE_API_BASE_URL}
+
 COPY frontend/package.json frontend/bun.lock ./
 RUN npm install -g bun && bun install
 COPY frontend/ .
@@ -23,8 +25,6 @@ RUN CGO_ENABLED=0 GOOS=linux go build -o /dist/server cmd/web/main.go
 FROM alpine:latest
 RUN apk add --no-cache ca-certificates tzdata
 WORKDIR /app
-# 设置环境变量
-ENV JWT_SECRET=${JWT_SECRET}
 # 从构建阶段复制前端静态文件
 COPY --from=frontend-builder /app/frontend/dist ./static
 # 从构建阶段复制后端二进制文件
