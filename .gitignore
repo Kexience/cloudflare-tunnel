@@ -99,6 +99,11 @@ $RECYCLE.BIN/
 out/
 .idea_modules/
 
+# === Environment ===
+.env
+.env.*
+!.env.example
+
 # === Project specific ===
 backend/config/config.yaml
 *.db
