@@ -16,6 +16,10 @@ type UpdateCredentialRequest struct {
 	IsDefault bool   `json:"is_default"`
 }
 
+type ValidateCredentialRequest struct {
+	CredentialID int64 `json:"credential_id" binding:"required"`
+}
+
 type CredentialVO struct {
 	ID        int64     `json:"id"`
 	Name      string    `json:"name"`
@@ -24,4 +28,16 @@ type CredentialVO struct {
 	IsDefault bool      `json:"is_default"`
 	CreatedAt time.Time `json:"created_at"`
 	UpdatedAt time.Time `json:"updated_at"`
+}
+
+type TestResultVO struct {
+	Success bool   `json:"success"`
+	Message string `json:"message"`
+}
+
+type TestLogVO struct {
+	ID           int64     `json:"id"`
+	Status       string    `json:"status"`
+	ErrorMessage *string   `json:"error_message,omitempty"`
+	TestedAt     time.Time `json:"tested_at"`
 }

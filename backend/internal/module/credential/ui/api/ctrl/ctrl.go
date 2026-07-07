@@ -19,6 +19,22 @@ func NewCtrl(cs svc.CredentialSvc) *Ctrl {
 	return &Ctrl{CredentialSvc: cs}
 }
 
+func (c *Ctrl) ValidateCredential(ctx *gin.Context) {
+	var req v1.ValidateCredentialRequest
+	if err := ctx.ShouldBindJSON(&req); err != nil {
+		core.Fail(ctx, errno.ErrParam)
+		return
+	}
+
+	userID := ctx.GetInt64(middleware.ContextKeyUserID)
+	vo, err := c.CredentialSvc.ValidateCredential(userID, &req)
+	if err != nil {
+		core.Fail(ctx, err)
+		return
+	}
+	core.OK(ctx, vo)
+}
+
 func (c *Ctrl) CreateCredential(ctx *gin.Context) {
 	var req v1.CreateCredentialRequest
 	if err := ctx.ShouldBindJSON(&req); err != nil {
@@ -112,4 +128,20 @@ func (c *Ctrl) SetDefaultCredential(ctx *gin.Context) {
 		return
 	}
 	core.OK(ctx, vo)
+}
+
+func (c *Ctrl) GetTestLogs(ctx *gin.Context) {
+	id, err := strconv.ParseInt(ctx.Param("id"), 10, 64)
+	if err != nil {
+		core.Fail(ctx, errno.ErrParam.WithMessage("无效的凭证ID"))
+		return
+	}
+
+	userID := ctx.GetInt64(middleware.ContextKeyUserID)
+	vos, err := c.CredentialSvc.GetTestLogs(userID, id)
+	if err != nil {
+		core.Fail(ctx, err)
+		return
+	}
+	core.OK(ctx, vos)
 }

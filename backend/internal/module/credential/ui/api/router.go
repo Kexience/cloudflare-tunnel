@@ -22,11 +22,13 @@ func (r *Router) SetupRoutes(g *gin.Engine) {
 	authorized := v1.Group("/credentials")
 	authorized.Use(middleware.Auth(r.jwt))
 	{
+		authorized.POST("/validate", r.ctrl.ValidateCredential)
 		authorized.POST("", r.ctrl.CreateCredential)
 		authorized.GET("", r.ctrl.GetCredentials)
 		authorized.GET("/:id", r.ctrl.GetCredential)
 		authorized.PUT("/:id", r.ctrl.UpdateCredential)
 		authorized.DELETE("/:id", r.ctrl.DeleteCredential)
 		authorized.PUT("/:id/default", r.ctrl.SetDefaultCredential)
+		authorized.GET("/:id/test-logs", r.ctrl.GetTestLogs)
 	}
 }
