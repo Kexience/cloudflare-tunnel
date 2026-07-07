@@ -106,4 +106,5 @@ out/
 
 # === Project specific ===
 backend/config/config.yaml
+backend/web
 *.db

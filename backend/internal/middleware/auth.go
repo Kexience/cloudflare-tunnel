@@ -1,6 +1,7 @@
 package middleware
 
 import (
+	"errors"
 	"strings"
 
 	"cloudflared-tunnel/pkg/core"
@@ -32,7 +33,11 @@ func Auth(jwt *core.JWT) gin.HandlerFunc {
 
 		claims, err := jwt.ParseToken(tokenString)
 		if err != nil {
-			core.Fail(ctx, errno.ErrTokenInvalid)
+			if errors.Is(err, core.ErrTokenExpired) {
+				core.Fail(ctx, errno.ErrUnauthorized)
+			} else {
+				core.Fail(ctx, errno.ErrTokenInvalid)
+			}
 			ctx.Abort()
 			return
 		}
