@@ -6,6 +6,7 @@ import (
 	"cloudflared-tunnel/ent/credential"
 	"cloudflared-tunnel/ent/credentialtestlog"
 	"cloudflared-tunnel/ent/schema"
+	"cloudflared-tunnel/ent/tunneltrafficlog"
 	"cloudflared-tunnel/ent/user"
 	"time"
 )
@@ -60,6 +61,32 @@ func init() {
 	credentialtestlogDescID := credentialtestlogFields[0].Descriptor()
 	// credentialtestlog.IDValidator is a validator for the "id" field. It is called by the builders before save.
 	credentialtestlog.IDValidator = credentialtestlogDescID.Validators[0].(func(int64) error)
+	tunneltrafficlogFields := schema.TunnelTrafficLog{}.Fields()
+	_ = tunneltrafficlogFields
+	// tunneltrafficlogDescTunnelID is the schema descriptor for tunnel_id field.
+	tunneltrafficlogDescTunnelID := tunneltrafficlogFields[1].Descriptor()
+	// tunneltrafficlog.TunnelIDValidator is a validator for the "tunnel_id" field. It is called by the builders before save.
+	tunneltrafficlog.TunnelIDValidator = tunneltrafficlogDescTunnelID.Validators[0].(func(string) error)
+	// tunneltrafficlogDescBytesIn is the schema descriptor for bytes_in field.
+	tunneltrafficlogDescBytesIn := tunneltrafficlogFields[2].Descriptor()
+	// tunneltrafficlog.DefaultBytesIn holds the default value on creation for the bytes_in field.
+	tunneltrafficlog.DefaultBytesIn = tunneltrafficlogDescBytesIn.Default.(int64)
+	// tunneltrafficlogDescBytesOut is the schema descriptor for bytes_out field.
+	tunneltrafficlogDescBytesOut := tunneltrafficlogFields[3].Descriptor()
+	// tunneltrafficlog.DefaultBytesOut holds the default value on creation for the bytes_out field.
+	tunneltrafficlog.DefaultBytesOut = tunneltrafficlogDescBytesOut.Default.(int64)
+	// tunneltrafficlogDescTotalRequests is the schema descriptor for total_requests field.
+	tunneltrafficlogDescTotalRequests := tunneltrafficlogFields[4].Descriptor()
+	// tunneltrafficlog.DefaultTotalRequests holds the default value on creation for the total_requests field.
+	tunneltrafficlog.DefaultTotalRequests = tunneltrafficlogDescTotalRequests.Default.(int64)
+	// tunneltrafficlogDescRecordedAt is the schema descriptor for recorded_at field.
+	tunneltrafficlogDescRecordedAt := tunneltrafficlogFields[5].Descriptor()
+	// tunneltrafficlog.DefaultRecordedAt holds the default value on creation for the recorded_at field.
+	tunneltrafficlog.DefaultRecordedAt = tunneltrafficlogDescRecordedAt.Default.(func() time.Time)
+	// tunneltrafficlogDescID is the schema descriptor for id field.
+	tunneltrafficlogDescID := tunneltrafficlogFields[0].Descriptor()
+	// tunneltrafficlog.IDValidator is a validator for the "id" field. It is called by the builders before save.
+	tunneltrafficlog.IDValidator = tunneltrafficlogDescID.Validators[0].(func(int64) error)
 	userFields := schema.User{}.Fields()
 	_ = userFields
 	// userDescNickname is the schema descriptor for nickname field.

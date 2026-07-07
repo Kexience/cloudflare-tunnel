@@ -35,9 +35,11 @@ type User struct {
 type UserEdges struct {
 	// Credentials holds the value of the credentials edge.
 	Credentials []*Credential `json:"credentials,omitempty"`
+	// TrafficLogs holds the value of the traffic_logs edge.
+	TrafficLogs []*TunnelTrafficLog `json:"traffic_logs,omitempty"`
 	// loadedTypes holds the information for reporting if a
 	// type was loaded (or requested) in eager-loading or not.
-	loadedTypes [1]bool
+	loadedTypes [2]bool
 }
 
 // CredentialsOrErr returns the Credentials value or an error if the edge
@@ -47,6 +49,15 @@ func (e UserEdges) CredentialsOrErr() ([]*Credential, error) {
 		return e.Credentials, nil
 	}
 	return nil, &NotLoadedError{edge: "credentials"}
+}
+
+// TrafficLogsOrErr returns the TrafficLogs value or an error if the edge
+// was not loaded in eager-loading.
+func (e UserEdges) TrafficLogsOrErr() ([]*TunnelTrafficLog, error) {
+	if e.loadedTypes[1] {
+		return e.TrafficLogs, nil
+	}
+	return nil, &NotLoadedError{edge: "traffic_logs"}
 }
 
 // scanValues returns the types for scanning values from sql.Rows.
@@ -119,6 +130,11 @@ func (_m *User) Value(name string) (ent.Value, error) {
 // QueryCredentials queries the "credentials" edge of the User entity.
 func (_m *User) QueryCredentials() *CredentialQuery {
 	return NewUserClient(_m.config).QueryCredentials(_m)
+}
+
+// QueryTrafficLogs queries the "traffic_logs" edge of the User entity.
+func (_m *User) QueryTrafficLogs() *TunnelTrafficLogQuery {
+	return NewUserClient(_m.config).QueryTrafficLogs(_m)
 }
 
 // Update returns a builder for updating this User.

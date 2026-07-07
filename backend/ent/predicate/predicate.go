@@ -12,5 +12,8 @@ type Credential func(*sql.Selector)
 // CredentialTestLog is the predicate function for credentialtestlog builders.
 type CredentialTestLog func(*sql.Selector)
 
+// TunnelTrafficLog is the predicate function for tunneltrafficlog builders.
+type TunnelTrafficLog func(*sql.Selector)
+
 // User is the predicate function for user builders.
 type User func(*sql.Selector)

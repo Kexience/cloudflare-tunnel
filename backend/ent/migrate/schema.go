@@ -63,6 +63,37 @@ var (
 			},
 		},
 	}
+	// TunnelTrafficLogsColumns holds the columns for the "tunnel_traffic_logs" table.
+	TunnelTrafficLogsColumns = []*schema.Column{
+		{Name: "id", Type: field.TypeInt64, Increment: true, Comment: "记录ID"},
+		{Name: "tunnel_id", Type: field.TypeString, Comment: "隧道ID"},
+		{Name: "bytes_in", Type: field.TypeInt64, Comment: "入站字节数", Default: 0},
+		{Name: "bytes_out", Type: field.TypeInt64, Comment: "出站字节数", Default: 0},
+		{Name: "total_requests", Type: field.TypeInt64, Comment: "总请求数", Default: 0},
+		{Name: "recorded_at", Type: field.TypeTime, Comment: "记录时间"},
+		{Name: "user_traffic_logs", Type: field.TypeInt64},
+	}
+	// TunnelTrafficLogsTable holds the schema information for the "tunnel_traffic_logs" table.
+	TunnelTrafficLogsTable = &schema.Table{
+		Name:       "tunnel_traffic_logs",
+		Columns:    TunnelTrafficLogsColumns,
+		PrimaryKey: []*schema.Column{TunnelTrafficLogsColumns[0]},
+		ForeignKeys: []*schema.ForeignKey{
+			{
+				Symbol:     "tunnel_traffic_logs_users_traffic_logs",
+				Columns:    []*schema.Column{TunnelTrafficLogsColumns[6]},
+				RefColumns: []*schema.Column{UsersColumns[0]},
+				OnDelete:   schema.NoAction,
+			},
+		},
+		Indexes: []*schema.Index{
+			{
+				Name:    "tunneltrafficlog_tunnel_id_recorded_at",
+				Unique:  false,
+				Columns: []*schema.Column{TunnelTrafficLogsColumns[1], TunnelTrafficLogsColumns[5]},
+			},
+		},
+	}
 	// UsersColumns holds the columns for the "users" table.
 	UsersColumns = []*schema.Column{
 		{Name: "id", Type: field.TypeInt64, Increment: true, Comment: "用户ID"},
@@ -93,6 +124,7 @@ var (
 	Tables = []*schema.Table{
 		CredentialsTable,
 		CredentialTestLogsTable,
+		TunnelTrafficLogsTable,
 		UsersTable,
 	}
 )
@@ -107,6 +139,11 @@ func init() {
 	CredentialTestLogsTable.Annotation = &entsql.Annotation{
 		Table:   "credential_test_logs",
 		Options: "COMMENT='凭证测试日志表'",
+	}
+	TunnelTrafficLogsTable.ForeignKeys[0].RefTable = UsersTable
+	TunnelTrafficLogsTable.Annotation = &entsql.Annotation{
+		Table:   "tunnel_traffic_logs",
+		Options: "COMMENT='隧道流量统计记录表'",
 	}
 	UsersTable.Annotation = &entsql.Annotation{
 		Table:   "users",

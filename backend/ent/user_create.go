@@ -4,6 +4,7 @@ package ent
 
 import (
 	"cloudflared-tunnel/ent/credential"
+	"cloudflared-tunnel/ent/tunneltrafficlog"
 	"cloudflared-tunnel/ent/user"
 	"context"
 	"errors"
@@ -63,6 +64,21 @@ func (_c *UserCreate) AddCredentials(v ...*Credential) *UserCreate {
 		ids[i] = v[i].ID
 	}
 	return _c.AddCredentialIDs(ids...)
+}
+
+// AddTrafficLogIDs adds the "traffic_logs" edge to the TunnelTrafficLog entity by IDs.
+func (_c *UserCreate) AddTrafficLogIDs(ids ...int64) *UserCreate {
+	_c.mutation.AddTrafficLogIDs(ids...)
+	return _c
+}
+
+// AddTrafficLogs adds the "traffic_logs" edges to the TunnelTrafficLog entity.
+func (_c *UserCreate) AddTrafficLogs(v ...*TunnelTrafficLog) *UserCreate {
+	ids := make([]int64, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _c.AddTrafficLogIDs(ids...)
 }
 
 // Mutation returns the UserMutation object of the builder.
@@ -193,6 +209,22 @@ func (_c *UserCreate) createSpec() (*User, *sqlgraph.CreateSpec) {
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: sqlgraph.NewFieldSpec(credential.FieldID, field.TypeInt64),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges = append(_spec.Edges, edge)
+	}
+	if nodes := _c.mutation.TrafficLogsIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   user.TrafficLogsTable,
+			Columns: []string{user.TrafficLogsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(tunneltrafficlog.FieldID, field.TypeInt64),
 			},
 		}
 		for _, k := range nodes {

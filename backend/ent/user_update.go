@@ -5,6 +5,7 @@ package ent
 import (
 	"cloudflared-tunnel/ent/credential"
 	"cloudflared-tunnel/ent/predicate"
+	"cloudflared-tunnel/ent/tunneltrafficlog"
 	"cloudflared-tunnel/ent/user"
 	"context"
 	"errors"
@@ -99,6 +100,21 @@ func (_u *UserUpdate) AddCredentials(v ...*Credential) *UserUpdate {
 	return _u.AddCredentialIDs(ids...)
 }
 
+// AddTrafficLogIDs adds the "traffic_logs" edge to the TunnelTrafficLog entity by IDs.
+func (_u *UserUpdate) AddTrafficLogIDs(ids ...int64) *UserUpdate {
+	_u.mutation.AddTrafficLogIDs(ids...)
+	return _u
+}
+
+// AddTrafficLogs adds the "traffic_logs" edges to the TunnelTrafficLog entity.
+func (_u *UserUpdate) AddTrafficLogs(v ...*TunnelTrafficLog) *UserUpdate {
+	ids := make([]int64, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _u.AddTrafficLogIDs(ids...)
+}
+
 // Mutation returns the UserMutation object of the builder.
 func (_u *UserUpdate) Mutation() *UserMutation {
 	return _u.mutation
@@ -123,6 +139,27 @@ func (_u *UserUpdate) RemoveCredentials(v ...*Credential) *UserUpdate {
 		ids[i] = v[i].ID
 	}
 	return _u.RemoveCredentialIDs(ids...)
+}
+
+// ClearTrafficLogs clears all "traffic_logs" edges to the TunnelTrafficLog entity.
+func (_u *UserUpdate) ClearTrafficLogs() *UserUpdate {
+	_u.mutation.ClearTrafficLogs()
+	return _u
+}
+
+// RemoveTrafficLogIDs removes the "traffic_logs" edge to TunnelTrafficLog entities by IDs.
+func (_u *UserUpdate) RemoveTrafficLogIDs(ids ...int64) *UserUpdate {
+	_u.mutation.RemoveTrafficLogIDs(ids...)
+	return _u
+}
+
+// RemoveTrafficLogs removes "traffic_logs" edges to TunnelTrafficLog entities.
+func (_u *UserUpdate) RemoveTrafficLogs(v ...*TunnelTrafficLog) *UserUpdate {
+	ids := make([]int64, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _u.RemoveTrafficLogIDs(ids...)
 }
 
 // Save executes the query and returns the number of nodes affected by the update operation.
@@ -246,6 +283,51 @@ func (_u *UserUpdate) sqlSave(ctx context.Context) (_node int, err error) {
 		}
 		_spec.Edges.Add = append(_spec.Edges.Add, edge)
 	}
+	if _u.mutation.TrafficLogsCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   user.TrafficLogsTable,
+			Columns: []string{user.TrafficLogsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(tunneltrafficlog.FieldID, field.TypeInt64),
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := _u.mutation.RemovedTrafficLogsIDs(); len(nodes) > 0 && !_u.mutation.TrafficLogsCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   user.TrafficLogsTable,
+			Columns: []string{user.TrafficLogsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(tunneltrafficlog.FieldID, field.TypeInt64),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := _u.mutation.TrafficLogsIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   user.TrafficLogsTable,
+			Columns: []string{user.TrafficLogsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(tunneltrafficlog.FieldID, field.TypeInt64),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
+	}
 	if _node, err = sqlgraph.UpdateNodes(ctx, _u.driver, _spec); err != nil {
 		if _, ok := err.(*sqlgraph.NotFoundError); ok {
 			err = &NotFoundError{user.Label}
@@ -337,6 +419,21 @@ func (_u *UserUpdateOne) AddCredentials(v ...*Credential) *UserUpdateOne {
 	return _u.AddCredentialIDs(ids...)
 }
 
+// AddTrafficLogIDs adds the "traffic_logs" edge to the TunnelTrafficLog entity by IDs.
+func (_u *UserUpdateOne) AddTrafficLogIDs(ids ...int64) *UserUpdateOne {
+	_u.mutation.AddTrafficLogIDs(ids...)
+	return _u
+}
+
+// AddTrafficLogs adds the "traffic_logs" edges to the TunnelTrafficLog entity.
+func (_u *UserUpdateOne) AddTrafficLogs(v ...*TunnelTrafficLog) *UserUpdateOne {
+	ids := make([]int64, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _u.AddTrafficLogIDs(ids...)
+}
+
 // Mutation returns the UserMutation object of the builder.
 func (_u *UserUpdateOne) Mutation() *UserMutation {
 	return _u.mutation
@@ -361,6 +458,27 @@ func (_u *UserUpdateOne) RemoveCredentials(v ...*Credential) *UserUpdateOne {
 		ids[i] = v[i].ID
 	}
 	return _u.RemoveCredentialIDs(ids...)
+}
+
+// ClearTrafficLogs clears all "traffic_logs" edges to the TunnelTrafficLog entity.
+func (_u *UserUpdateOne) ClearTrafficLogs() *UserUpdateOne {
+	_u.mutation.ClearTrafficLogs()
+	return _u
+}
+
+// RemoveTrafficLogIDs removes the "traffic_logs" edge to TunnelTrafficLog entities by IDs.
+func (_u *UserUpdateOne) RemoveTrafficLogIDs(ids ...int64) *UserUpdateOne {
+	_u.mutation.RemoveTrafficLogIDs(ids...)
+	return _u
+}
+
+// RemoveTrafficLogs removes "traffic_logs" edges to TunnelTrafficLog entities.
+func (_u *UserUpdateOne) RemoveTrafficLogs(v ...*TunnelTrafficLog) *UserUpdateOne {
+	ids := make([]int64, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _u.RemoveTrafficLogIDs(ids...)
 }
 
 // Where appends a list predicates to the UserUpdate builder.
@@ -507,6 +625,51 @@ func (_u *UserUpdateOne) sqlSave(ctx context.Context) (_node *User, err error) {
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: sqlgraph.NewFieldSpec(credential.FieldID, field.TypeInt64),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
+	}
+	if _u.mutation.TrafficLogsCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   user.TrafficLogsTable,
+			Columns: []string{user.TrafficLogsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(tunneltrafficlog.FieldID, field.TypeInt64),
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := _u.mutation.RemovedTrafficLogsIDs(); len(nodes) > 0 && !_u.mutation.TrafficLogsCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   user.TrafficLogsTable,
+			Columns: []string{user.TrafficLogsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(tunneltrafficlog.FieldID, field.TypeInt64),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := _u.mutation.TrafficLogsIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   user.TrafficLogsTable,
+			Columns: []string{user.TrafficLogsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(tunneltrafficlog.FieldID, field.TypeInt64),
 			},
 		}
 		for _, k := range nodes {

@@ -46,5 +46,6 @@ func (User) Indexes() []ent.Index {
 func (User) Edges() []ent.Edge {
 	return []ent.Edge{
 		edge.To("credentials", Credential.Type),
+		edge.To("traffic_logs", TunnelTrafficLog.Type),
 	}
 }

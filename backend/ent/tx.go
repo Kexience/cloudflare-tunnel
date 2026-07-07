@@ -16,6 +16,8 @@ type Tx struct {
 	Credential *CredentialClient
 	// CredentialTestLog is the client for interacting with the CredentialTestLog builders.
 	CredentialTestLog *CredentialTestLogClient
+	// TunnelTrafficLog is the client for interacting with the TunnelTrafficLog builders.
+	TunnelTrafficLog *TunnelTrafficLogClient
 	// User is the client for interacting with the User builders.
 	User *UserClient
 
@@ -151,6 +153,7 @@ func (tx *Tx) Client() *Client {
 func (tx *Tx) init() {
 	tx.Credential = NewCredentialClient(tx.config)
 	tx.CredentialTestLog = NewCredentialTestLogClient(tx.config)
+	tx.TunnelTrafficLog = NewTunnelTrafficLogClient(tx.config)
 	tx.User = NewUserClient(tx.config)
 }
 
