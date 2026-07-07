@@ -30,15 +30,15 @@ func (s *svc) CreateCredential(userID int64, req *v1.CreateCredentialRequest) (*
 		return nil, errno.ErrCredentialEncrypt
 	}
 
-	cred, err := s.repo.CreateCredential(userID, req.Name, encryptedToken, req.AccountID, req.IsDefault)
-	if err != nil {
-		return nil, errno.ErrDB
-	}
-
 	if req.IsDefault {
 		if err := s.repo.ClearDefaultByUserID(userID); err != nil {
 			s.log.Error("清除默认凭证失败", "error", err)
 		}
+	}
+
+	cred, err := s.repo.CreateCredential(userID, req.Name, encryptedToken, req.AccountID, req.IsDefault)
+	if err != nil {
+		return nil, errno.ErrDB
 	}
 
 	return s.toVO(cred, req.ApiToken), nil
