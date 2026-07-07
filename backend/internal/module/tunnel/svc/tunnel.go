@@ -1,6 +1,8 @@
 package svc
 
 import (
+	"os/exec"
+
 	v1 "cloudflared-tunnel/internal/module/tunnel/ui/api/req/v1"
 	"cloudflared-tunnel/pkg/errno"
 
@@ -25,6 +27,12 @@ type TunnelSvc interface {
 	GetTunnelConfig(userID, credentialID int64, tunnelID string) (*v1.TunnelConfigVO, error)
 	// UpdateTunnelConfig 更新隧道配置
 	UpdateTunnelConfig(userID, credentialID int64, tunnelID string, config cf.TunnelConfiguration) (*v1.TunnelConfigVO, error)
+	// StartTunnel 启动隧道
+	StartTunnel(userID, credentialID int64, tunnelID string) error
+	// StopTunnel 停止隧道
+	StopTunnel(userID, credentialID int64, tunnelID string) error
+	// GetTunnelStatus 获取隧道运行状态
+	GetTunnelStatus(userID, credentialID int64, tunnelID string) (*v1.TunnelStatusVO, error)
 }
 
 func (s *svc) ListTunnels(userID, credentialID int64) ([]*v1.TunnelVO, error) {
@@ -178,5 +186,92 @@ func (s *svc) UpdateTunnelConfig(userID, credentialID int64, tunnelID string, co
 		TunnelID: result.TunnelID,
 		Config:   result.Config,
 		Version:  result.Version,
+	}, nil
+}
+
+func (s *svc) StartTunnel(userID, credentialID int64, tunnelID string) error {
+	cred, token, err := s.getCredentialAndToken(userID, credentialID)
+	if err != nil {
+		return err
+	}
+
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
+	// 检查隧道是否已在运行
+	if cmd, exists := s.processes[tunnelID]; exists && cmd.Process != nil {
+		if err := cmd.Process.Signal(nil); err == nil {
+			return errno.ErrTunnelStartFailed.WithMessage("隧道已在运行中")
+		}
+	}
+
+	// 获取隧道 Token
+	tunnelToken, err := s.tunnelClient.GetTunnelToken(token, cred.AccountID, tunnelID)
+	if err != nil {
+		s.log.Error("获取隧道 Token 失败", "tunnelID", tunnelID, "error", err)
+		return errno.ErrTunnelStartFailed
+	}
+
+	// 启动 cloudflared 进程
+	cmd := exec.Command("cloudflared", "tunnel", "run", "--token", tunnelToken, tunnelID)
+	if err := cmd.Start(); err != nil {
+		s.log.Error("启动隧道进程失败", "tunnelID", tunnelID, "error", err)
+		return errno.ErrTunnelStartFailed
+	}
+
+	s.processes[tunnelID] = cmd
+	return nil
+}
+
+func (s *svc) StopTunnel(userID, credentialID int64, tunnelID string) error {
+	// 验证凭证存在
+	if _, _, err := s.getCredentialAndToken(userID, credentialID); err != nil {
+		return err
+	}
+
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
+	cmd, exists := s.processes[tunnelID]
+	if !exists || cmd.Process == nil {
+		return errno.ErrTunnelStopFailed.WithMessage("隧道未在运行")
+	}
+
+	// 终止进程
+	if err := cmd.Process.Kill(); err != nil {
+		s.log.Error("停止隧道进程失败", "tunnelID", tunnelID, "error", err)
+		return errno.ErrTunnelStopFailed
+	}
+
+	// 等待进程退出
+	go func() {
+		cmd.Wait()
+		s.mu.Lock()
+		delete(s.processes, tunnelID)
+		s.mu.Unlock()
+	}()
+
+	return nil
+}
+
+func (s *svc) GetTunnelStatus(userID, credentialID int64, tunnelID string) (*v1.TunnelStatusVO, error) {
+	// 验证凭证存在
+	if _, _, err := s.getCredentialAndToken(userID, credentialID); err != nil {
+		return nil, err
+	}
+
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+
+	status := "stopped"
+	if cmd, exists := s.processes[tunnelID]; exists && cmd.Process != nil {
+		if err := cmd.Process.Signal(nil); err == nil {
+			status = "running"
+		}
+	}
+
+	return &v1.TunnelStatusVO{
+		TunnelID: tunnelID,
+		Status:   status,
 	}, nil
 }

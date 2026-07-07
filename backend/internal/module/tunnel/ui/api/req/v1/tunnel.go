@@ -89,6 +89,12 @@ type TunnelTokenVO struct {
 	Token string `json:"token"`
 }
 
+// TunnelStatusVO 隧道运行状态
+type TunnelStatusVO struct {
+	TunnelID string `json:"tunnel_id"`
+	Status   string `json:"status"`
+}
+
 // DNSRecordVO DNS 记录
 type DNSRecordVO struct {
 	ID      string `json:"id"`

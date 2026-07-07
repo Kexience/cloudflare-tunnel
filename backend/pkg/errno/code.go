@@ -36,6 +36,9 @@ var (
 	ErrTunnelCreateFailed = &Errno{Code: 40002, Message: "创建隧道失败"}
 	ErrTunnelDeleteFailed = &Errno{Code: 40003, Message: "删除隧道失败"}
 	ErrTunnelConfigFailed = &Errno{Code: 40004, Message: "隧道配置操作失败"}
+	ErrTunnelStartFailed  = &Errno{Code: 40005, Message: "启动隧道失败"}
+	ErrTunnelStopFailed   = &Errno{Code: 40006, Message: "停止隧道失败"}
+	ErrTunnelStatusFailed = &Errno{Code: 40007, Message: "获取隧道状态失败"}
 
 	// DNS 模块
 	ErrDNSRecordNotFound = &Errno{Code: 50001, Message: "DNS 记录不存在"}

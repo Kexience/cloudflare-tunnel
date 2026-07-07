@@ -35,6 +35,9 @@ func (r *Router) SetupRoutes(g *gin.Engine) {
 		tunnels.GET("/:id/connections", r.ctrl.ListTunnelConnections)
 		tunnels.GET("/:id/config", r.ctrl.GetTunnelConfig)
 		tunnels.PUT("/:id/config", r.ctrl.UpdateTunnelConfig)
+		tunnels.POST("/:id/start", r.ctrl.StartTunnel)
+		tunnels.POST("/:id/stop", r.ctrl.StopTunnel)
+		tunnels.GET("/:id/status", r.ctrl.GetTunnelStatus)
 	}
 
 	// DNS 记录管理

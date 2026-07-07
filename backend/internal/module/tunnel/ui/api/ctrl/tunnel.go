@@ -191,3 +191,76 @@ func (c *Ctrl) UpdateTunnelConfig(ctx *gin.Context) {
 	}
 	core.OK(ctx, vo)
 }
+
+// StartTunnel 启动隧道
+func (c *Ctrl) StartTunnel(ctx *gin.Context) {
+	tunnelID := ctx.Param("id")
+	if tunnelID == "" {
+		core.Fail(ctx, errno.ErrParam.WithMessage("无效的隧道ID"))
+		return
+	}
+
+	var req struct {
+		CredentialID int64 `form:"credential_id" binding:"required"`
+	}
+	if err := ctx.ShouldBindQuery(&req); err != nil {
+		core.Fail(ctx, errno.ErrParam)
+		return
+	}
+
+	userID := ctx.GetInt64(middleware.ContextKeyUserID)
+	if err := c.tunnelSvc.StartTunnel(userID, req.CredentialID, tunnelID); err != nil {
+		core.Fail(ctx, err)
+		return
+	}
+	core.OK(ctx, nil)
+}
+
+// StopTunnel 停止隧道
+func (c *Ctrl) StopTunnel(ctx *gin.Context) {
+	tunnelID := ctx.Param("id")
+	if tunnelID == "" {
+		core.Fail(ctx, errno.ErrParam.WithMessage("无效的隧道ID"))
+		return
+	}
+
+	var req struct {
+		CredentialID int64 `form:"credential_id" binding:"required"`
+	}
+	if err := ctx.ShouldBindQuery(&req); err != nil {
+		core.Fail(ctx, errno.ErrParam)
+		return
+	}
+
+	userID := ctx.GetInt64(middleware.ContextKeyUserID)
+	if err := c.tunnelSvc.StopTunnel(userID, req.CredentialID, tunnelID); err != nil {
+		core.Fail(ctx, err)
+		return
+	}
+	core.OK(ctx, nil)
+}
+
+// GetTunnelStatus 获取隧道运行状态
+func (c *Ctrl) GetTunnelStatus(ctx *gin.Context) {
+	tunnelID := ctx.Param("id")
+	if tunnelID == "" {
+		core.Fail(ctx, errno.ErrParam.WithMessage("无效的隧道ID"))
+		return
+	}
+
+	var req struct {
+		CredentialID int64 `form:"credential_id" binding:"required"`
+	}
+	if err := ctx.ShouldBindQuery(&req); err != nil {
+		core.Fail(ctx, errno.ErrParam)
+		return
+	}
+
+	userID := ctx.GetInt64(middleware.ContextKeyUserID)
+	vo, err := c.tunnelSvc.GetTunnelStatus(userID, req.CredentialID, tunnelID)
+	if err != nil {
+		core.Fail(ctx, err)
+		return
+	}
+	core.OK(ctx, vo)
+}

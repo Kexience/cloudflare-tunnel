@@ -1,6 +1,9 @@
 package svc
 
 import (
+	"os/exec"
+	"sync"
+
 	"cloudflared-tunnel/ent"
 	"cloudflared-tunnel/internal/infra/logger"
 	"cloudflared-tunnel/internal/module/credential/repo"
@@ -18,6 +21,10 @@ type svc struct {
 	dnsClient      cloudflare.DNSClient
 	log            logger.Logger
 	secret         []byte
+
+	// 进程管理
+	processes map[string]*exec.Cmd
+	mu        sync.RWMutex
 }
 
 // NewSvc 创建隧道管理服务（返回具体类型，由 FX 绑定接口）
@@ -34,6 +41,7 @@ func NewSvc(
 		dnsClient:      dnsClient,
 		log:            log,
 		secret:         secret,
+		processes:      make(map[string]*exec.Cmd),
 	}
 }
 
