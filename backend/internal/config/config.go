@@ -5,6 +5,7 @@ type Config struct {
 	DB         DBConfig         `mapstructure:"db"`
 	JWT        JWTConfig        `mapstructure:"jwt"`
 	Credential CredentialConfig `mapstructure:"credential"`
+	Cloudflared CloudflaredConfig `mapstructure:"cloudflared"`
 }
 
 type AppConfig struct {
@@ -25,4 +26,8 @@ type JWTConfig struct {
 
 type CredentialConfig struct {
 	Secret string `mapstructure:"secret"`
+}
+
+type CloudflaredConfig struct {
+	Version string `mapstructure:"version"`
 }
