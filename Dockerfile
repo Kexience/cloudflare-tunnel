@@ -12,7 +12,7 @@ COPY frontend/ .
 RUN bun run build
 
 # 构建后端二进制文件
-FROM golang:1.23-alpine AS backend-builder
+FROM golang:1.26-alpine AS backend-builder
 WORKDIR /app/backend
 COPY backend/go.mod backend/go.sum ./
 RUN go mod download

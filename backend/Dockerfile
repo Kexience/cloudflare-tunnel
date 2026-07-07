@@ -1,5 +1,5 @@
 # 后端服务镜像
-FROM golang:1.23-alpine AS builder
+FROM golang:1.26-alpine AS builder
 WORKDIR /app
 
 # 安装依赖工具
