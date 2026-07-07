@@ -127,6 +127,7 @@
       disabled={$authLoading}
       loading={$authLoading}
       loadingText="注册中..."
+      fullWidth
     >
       注册
     </PrimaryButton>

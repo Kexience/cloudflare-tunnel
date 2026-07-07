@@ -7,6 +7,7 @@
     type = 'button',
     loading = false,
     loadingText = '保存中...',
+    fullWidth = false,
     children
   }: {
     onclick?: () => void
@@ -14,6 +15,7 @@
     type?: 'button' | 'submit' | 'reset'
     loading?: boolean
     loadingText?: string
+    fullWidth?: boolean
     children: Snippet
   } = $props()
 </script>
@@ -22,7 +24,7 @@
   {type}
   {onclick}
   {disabled}
-  class="inline-flex items-center px-5 py-2.5 bg-linear-to-r from-indigo-600 to-purple-600 text-white font-medium rounded-xl shadow-lg hover:shadow-xl transition duration-200 transform hover:scale-[1.02] disabled:opacity-50"
+  class="{fullWidth ? 'w-full flex justify-center' : 'inline-flex'} items-center px-5 py-2.5 bg-linear-to-r from-indigo-600 to-purple-600 text-white font-medium rounded-xl shadow-lg hover:shadow-xl transition duration-200 transform hover:scale-[1.02] disabled:opacity-50"
 >
   {#if loading}
     <svg class="animate-spin -ml-1 mr-2 h-4 w-4 text-white" fill="none" viewBox="0 0 24 24">

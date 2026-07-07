@@ -65,6 +65,7 @@
       disabled={$authLoading}
       loading={$authLoading}
       loadingText="登录中..."
+      fullWidth
     >
       登录
     </PrimaryButton>
