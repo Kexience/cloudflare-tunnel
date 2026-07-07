@@ -264,3 +264,14 @@ func (c *Ctrl) GetTunnelStatus(ctx *gin.Context) {
 	}
 	core.OK(ctx, vo)
 }
+
+// GetDashboardStats 获取仪表盘统计数据
+func (c *Ctrl) GetDashboardStats(ctx *gin.Context) {
+	userID := ctx.GetInt64(middleware.ContextKeyUserID)
+	vo, err := c.tunnelSvc.GetDashboardStats(userID)
+	if err != nil {
+		core.Fail(ctx, err)
+		return
+	}
+	core.OK(ctx, vo)
+}

@@ -15,6 +15,7 @@ var Module = fx.Module(
 	fx.Provide(
 		cloudflare.NewTunnelClient,
 		cloudflare.NewDNSClient,
+		cloudflare.NewManager,
 		fx.Annotate(
 			svc.NewSvc,
 			fx.As(new(svc.TunnelSvc)),

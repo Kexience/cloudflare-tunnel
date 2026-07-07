@@ -1,9 +1,15 @@
 package svc
 
 import (
+	"context"
+	"fmt"
+	"os"
 	"os/exec"
+	"syscall"
+	"time"
 
 	v1 "cloudflared-tunnel/internal/module/tunnel/ui/api/req/v1"
+	"cloudflared-tunnel/pkg/crypto"
 	"cloudflared-tunnel/pkg/errno"
 
 	cf "github.com/cloudflare/cloudflare-go"
@@ -33,6 +39,10 @@ type TunnelSvc interface {
 	StopTunnel(userID, credentialID int64, tunnelID string) error
 	// GetTunnelStatus 获取隧道运行状态
 	GetTunnelStatus(userID, credentialID int64, tunnelID string) (*v1.TunnelStatusVO, error)
+	// GetDashboardStats 获取仪表盘统计数据
+	GetDashboardStats(userID int64) (*v1.DashboardStatsVO, error)
+	// Cleanup 停止所有运行中的隧道进程
+	Cleanup()
 }
 
 func (s *svc) ListTunnels(userID, credentialID int64) ([]*v1.TunnelVO, error) {
@@ -212,14 +222,51 @@ func (s *svc) StartTunnel(userID, credentialID int64, tunnelID string) error {
 		return errno.ErrTunnelStartFailed
 	}
 
+	// 获取 cloudflared 路径
+	binPath, err := s.cloudflaredMgr.GetPath()
+	if err != nil {
+		s.log.Error("获取 cloudflared 路径失败", "error", err)
+		return errno.ErrTunnelStartFailed
+	}
+
+	// 分配 metrics 端口
+	metricsPort := s.getNextMetricsPort()
+
 	// 启动 cloudflared 进程
-	cmd := exec.Command("cloudflared", "tunnel", "run", "--token", tunnelToken, tunnelID)
+	// --metrics 是 tunnel 级别参数，放在 run 之前
+	// --token 是 run 子命令参数，放在 run 之后
+	cmd := exec.Command(binPath, "tunnel", "--metrics", fmt.Sprintf("localhost:%d", metricsPort),
+		"run", "--token", tunnelToken)
+
+	// 捕获输出用于调试
+	cmd.Stdout = os.Stdout
+	cmd.Stderr = os.Stderr
+
+	s.log.Info("启动隧道进程", "tunnelID", tunnelID, "binPath", binPath, "metricsPort", metricsPort)
+
 	if err := cmd.Start(); err != nil {
 		s.log.Error("启动隧道进程失败", "tunnelID", tunnelID, "error", err)
 		return errno.ErrTunnelStartFailed
 	}
 
+	// 等待一小段时间检查进程是否立即退出
+	go func() {
+		time.Sleep(2 * time.Second)
+		if cmd.Process != nil {
+			if err := cmd.Process.Signal(syscall.Signal(0)); err != nil {
+				s.log.Error("隧道进程已退出", "tunnelID", tunnelID, "error", err)
+				s.mu.Lock()
+				delete(s.processes, tunnelID)
+				delete(s.metricsPorts, tunnelID)
+				s.mu.Unlock()
+			} else {
+				s.log.Info("隧道进程运行正常", "tunnelID", tunnelID)
+			}
+		}
+	}()
+
 	s.processes[tunnelID] = cmd
+	s.metricsPorts[tunnelID] = metricsPort
 	return nil
 }
 
@@ -248,6 +295,7 @@ func (s *svc) StopTunnel(userID, credentialID int64, tunnelID string) error {
 		cmd.Wait()
 		s.mu.Lock()
 		delete(s.processes, tunnelID)
+		delete(s.metricsPorts, tunnelID)
 		s.mu.Unlock()
 	}()
 
@@ -265,8 +313,13 @@ func (s *svc) GetTunnelStatus(userID, credentialID int64, tunnelID string) (*v1.
 
 	status := "stopped"
 	if cmd, exists := s.processes[tunnelID]; exists && cmd.Process != nil {
-		if err := cmd.Process.Signal(nil); err == nil {
-			status = "running"
+		// 检查进程是否还在运行
+		// 通过检查 metrics 端点来判断
+		if port, ok := s.metricsPorts[tunnelID]; ok {
+			_, err := s.metricsClient.FetchMetrics(port)
+			if err == nil {
+				status = "running"
+			}
 		}
 	}
 
@@ -274,4 +327,115 @@ func (s *svc) GetTunnelStatus(userID, credentialID int64, tunnelID string) (*v1.
 		TunnelID: tunnelID,
 		Status:   status,
 	}, nil
+}
+
+func (s *svc) GetDashboardStats(userID int64) (*v1.DashboardStatsVO, error) {
+	stats := &v1.DashboardStatsVO{}
+
+	// 获取用户所有凭证
+	credentials, err := s.credentialRepo.GetCredentialsByUserID(userID)
+	if err != nil {
+		s.log.Error("获取凭证列表失败", "userID", userID, "error", err)
+		return nil, errno.ErrDB
+	}
+
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+
+	totalCount := 0
+	runningCount := 0
+	var totalBytesIn, totalBytesOut, totalRequests int64
+
+	// 统计每个凭证下的隧道
+	for _, cred := range credentials {
+		token, err := s.decryptToken(cred.APIToken)
+		if err != nil {
+			continue
+		}
+
+		tunnels, err := s.tunnelClient.ListTunnels(token, cred.AccountID)
+		if err != nil {
+			continue
+		}
+
+		totalCount += len(tunnels)
+
+		// 检查每个隧道的运行状态和流量
+		for _, tunnel := range tunnels {
+			if cmd, exists := s.processes[tunnel.ID]; exists && cmd.Process != nil {
+				// 通过 metrics 端点检查进程是否在运行
+				if port, ok := s.metricsPorts[tunnel.ID]; ok {
+					metrics, err := s.metricsClient.FetchMetrics(port)
+					if err == nil {
+						runningCount++
+						totalBytesIn += metrics.BytesIn
+						totalBytesOut += metrics.BytesOut
+						totalRequests += metrics.TotalRequests
+					}
+				}
+			}
+		}
+	}
+
+	stats.RunningCount = runningCount
+	stats.TotalCount = totalCount
+	stats.BytesIn = totalBytesIn
+	stats.BytesOut = totalBytesOut
+	stats.TotalRequests = totalRequests
+
+	// 异步记录流量到数据库
+	go s.recordTrafficMetrics(userID)
+
+	return stats, nil
+}
+
+// recordTrafficMetrics 记录流量指标到数据库
+func (s *svc) recordTrafficMetrics(userID int64) {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+
+	for tunnelID, port := range s.metricsPorts {
+		metrics, err := s.metricsClient.FetchMetrics(port)
+		if err != nil {
+			continue
+		}
+
+		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+		defer cancel()
+
+		_, err = s.entClient.TunnelTrafficLog.Create().
+			SetTunnelID(tunnelID).
+			SetBytesIn(metrics.BytesIn).
+			SetBytesOut(metrics.BytesOut).
+			SetTotalRequests(metrics.TotalRequests).
+			SetUserID(userID).
+			Save(ctx)
+		if err != nil {
+			s.log.Error("记录流量指标失败", "tunnelID", tunnelID, "error", err)
+		}
+	}
+}
+
+// decryptToken 解密 Token
+func (s *svc) decryptToken(encryptedToken string) (string, error) {
+	return crypto.Decrypt(encryptedToken, s.secret)
+}
+
+// Cleanup 停止所有运行中的隧道进程
+func (s *svc) Cleanup() {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
+	for tunnelID, cmd := range s.processes {
+		if cmd.Process != nil {
+			s.log.Info("停止隧道进程", "tunnelID", tunnelID)
+			if err := cmd.Process.Kill(); err != nil {
+				s.log.Error("停止隧道进程失败", "tunnelID", tunnelID, "error", err)
+			}
+			cmd.Wait()
+		}
+	}
+
+	s.processes = make(map[string]*exec.Cmd)
+	s.metricsPorts = make(map[string]int)
 }

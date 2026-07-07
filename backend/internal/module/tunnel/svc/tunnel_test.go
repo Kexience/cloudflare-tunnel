@@ -6,6 +6,7 @@ import (
 
 	"cloudflared-tunnel/internal/module/credential/repo"
 	"cloudflared-tunnel/internal/module/tunnel/svc"
+	"cloudflared-tunnel/pkg/cloudflare"
 	"cloudflared-tunnel/pkg/crypto"
 	"cloudflared-tunnel/pkg/errno"
 	"cloudflared-tunnel/pkg/testutil"
@@ -37,7 +38,7 @@ func TestListTunnels(t *testing.T) {
 			},
 		}
 
-		tunnelSvc := svc.NewSvc(credentialRepo, tunnelClient, nil, log, []byte(testSecret))
+		tunnelSvc := svc.NewSvc(credentialRepo, tunnelClient, nil, log, []byte(testSecret), cloudflare.NewManager(), container.Client)
 		vos, err := tunnelSvc.ListTunnels(user.ID, cred.ID)
 
 		assert.NoError(t, err)
@@ -47,7 +48,7 @@ func TestListTunnels(t *testing.T) {
 	})
 
 	t.Run("凭证不存在", func(t *testing.T) {
-		tunnelSvc := svc.NewSvc(credentialRepo, nil, nil, log, []byte(testSecret))
+		tunnelSvc := svc.NewSvc(credentialRepo, nil, nil, log, []byte(testSecret), cloudflare.NewManager(), container.Client)
 		_, err := tunnelSvc.ListTunnels(user.ID, 999)
 
 		assert.ErrorIs(t, err, errno.ErrCredentialNotFound)
@@ -72,7 +73,7 @@ func TestGetTunnel(t *testing.T) {
 			},
 		}
 
-		tunnelSvc := svc.NewSvc(credentialRepo, tunnelClient, nil, log, []byte(testSecret))
+		tunnelSvc := svc.NewSvc(credentialRepo, tunnelClient, nil, log, []byte(testSecret), cloudflare.NewManager(), container.Client)
 		vo, err := tunnelSvc.GetTunnel(user.ID, cred.ID, "tunnel-1")
 
 		assert.NoError(t, err)
@@ -90,7 +91,7 @@ func TestGetTunnel(t *testing.T) {
 			},
 		}
 
-		tunnelSvc := svc.NewSvc(credentialRepo, tunnelClient, nil, log, []byte(testSecret))
+		tunnelSvc := svc.NewSvc(credentialRepo, tunnelClient, nil, log, []byte(testSecret), cloudflare.NewManager(), container.Client)
 		_, err := tunnelSvc.GetTunnel(user.ID, cred.ID, "tunnel-999")
 
 		assert.ErrorIs(t, err, errno.ErrTunnelNotFound)
@@ -115,7 +116,7 @@ func TestCreateTunnel(t *testing.T) {
 			},
 		}
 
-		tunnelSvc := svc.NewSvc(credentialRepo, tunnelClient, nil, log, []byte(testSecret))
+		tunnelSvc := svc.NewSvc(credentialRepo, tunnelClient, nil, log, []byte(testSecret), cloudflare.NewManager(), container.Client)
 		vo, err := tunnelSvc.CreateTunnel(user.ID, cred.ID, "新隧道")
 
 		assert.NoError(t, err)
@@ -133,7 +134,7 @@ func TestCreateTunnel(t *testing.T) {
 			},
 		}
 
-		tunnelSvc := svc.NewSvc(credentialRepo, tunnelClient, nil, log, []byte(testSecret))
+		tunnelSvc := svc.NewSvc(credentialRepo, tunnelClient, nil, log, []byte(testSecret), cloudflare.NewManager(), container.Client)
 		_, err := tunnelSvc.CreateTunnel(user.ID, cred.ID, "失败隧道")
 
 		assert.ErrorIs(t, err, errno.ErrTunnelCreateFailed)
@@ -157,7 +158,7 @@ func TestDeleteTunnel(t *testing.T) {
 			},
 		}
 
-		tunnelSvc := svc.NewSvc(credentialRepo, tunnelClient, nil, log, []byte(testSecret))
+		tunnelSvc := svc.NewSvc(credentialRepo, tunnelClient, nil, log, []byte(testSecret), cloudflare.NewManager(), container.Client)
 		err := tunnelSvc.DeleteTunnel(user.ID, cred.ID, "tunnel-1")
 
 		assert.NoError(t, err)
@@ -173,7 +174,7 @@ func TestDeleteTunnel(t *testing.T) {
 			},
 		}
 
-		tunnelSvc := svc.NewSvc(credentialRepo, tunnelClient, nil, log, []byte(testSecret))
+		tunnelSvc := svc.NewSvc(credentialRepo, tunnelClient, nil, log, []byte(testSecret), cloudflare.NewManager(), container.Client)
 		err := tunnelSvc.DeleteTunnel(user.ID, cred.ID, "tunnel-1")
 
 		assert.ErrorIs(t, err, errno.ErrTunnelDeleteFailed)
@@ -197,7 +198,7 @@ func TestGetTunnelToken(t *testing.T) {
 			},
 		}
 
-		tunnelSvc := svc.NewSvc(credentialRepo, tunnelClient, nil, log, []byte(testSecret))
+		tunnelSvc := svc.NewSvc(credentialRepo, tunnelClient, nil, log, []byte(testSecret), cloudflare.NewManager(), container.Client)
 		vo, err := tunnelSvc.GetTunnelToken(user.ID, cred.ID, "tunnel-1")
 
 		assert.NoError(t, err)
@@ -230,7 +231,7 @@ func TestGetTunnelConfig(t *testing.T) {
 			},
 		}
 
-		tunnelSvc := svc.NewSvc(credentialRepo, tunnelClient, nil, log, []byte(testSecret))
+		tunnelSvc := svc.NewSvc(credentialRepo, tunnelClient, nil, log, []byte(testSecret), cloudflare.NewManager(), container.Client)
 		vo, err := tunnelSvc.GetTunnelConfig(user.ID, cred.ID, "tunnel-1")
 
 		assert.NoError(t, err)
@@ -267,7 +268,7 @@ func TestUpdateTunnelConfig(t *testing.T) {
 			},
 		}
 
-		tunnelSvc := svc.NewSvc(credentialRepo, tunnelClient, nil, log, []byte(testSecret))
+		tunnelSvc := svc.NewSvc(credentialRepo, tunnelClient, nil, log, []byte(testSecret), cloudflare.NewManager(), container.Client)
 		vo, err := tunnelSvc.UpdateTunnelConfig(user.ID, cred.ID, "tunnel-1", newConfig)
 
 		assert.NoError(t, err)
@@ -296,7 +297,7 @@ func TestListDNSRecords(t *testing.T) {
 			},
 		}
 
-		tunnelSvc := svc.NewSvc(credentialRepo, nil, dnsClient, log, []byte(testSecret))
+		tunnelSvc := svc.NewSvc(credentialRepo, nil, dnsClient, log, []byte(testSecret), cloudflare.NewManager(), container.Client)
 		vos, err := tunnelSvc.ListDNSRecords(user.ID, cred.ID, "zone-1", "", "")
 
 		assert.NoError(t, err)
@@ -317,7 +318,7 @@ func TestListDNSRecords(t *testing.T) {
 			},
 		}
 
-		tunnelSvc := svc.NewSvc(credentialRepo, nil, dnsClient, log, []byte(testSecret))
+		tunnelSvc := svc.NewSvc(credentialRepo, nil, dnsClient, log, []byte(testSecret), cloudflare.NewManager(), container.Client)
 		_, err := tunnelSvc.ListDNSRecords(user.ID, cred.ID, "zone-1", "app.example.com", "CNAME")
 
 		assert.NoError(t, err)
@@ -351,7 +352,7 @@ func TestCreateDNSRecord(t *testing.T) {
 			},
 		}
 
-		tunnelSvc := svc.NewSvc(credentialRepo, nil, dnsClient, log, []byte(testSecret))
+		tunnelSvc := svc.NewSvc(credentialRepo, nil, dnsClient, log, []byte(testSecret), cloudflare.NewManager(), container.Client)
 		vo, err := tunnelSvc.CreateDNSRecord(user.ID, cred.ID, "zone-1", "app.example.com", "tunnel-1.cfargotunnel.com", &proxied, 1)
 
 		assert.NoError(t, err)
@@ -371,7 +372,7 @@ func TestCreateDNSRecord(t *testing.T) {
 		}
 
 		proxied := true
-		tunnelSvc := svc.NewSvc(credentialRepo, nil, dnsClient, log, []byte(testSecret))
+		tunnelSvc := svc.NewSvc(credentialRepo, nil, dnsClient, log, []byte(testSecret), cloudflare.NewManager(), container.Client)
 		_, err := tunnelSvc.CreateDNSRecord(user.ID, cred.ID, "zone-1", "app.example.com", "tunnel-1.cfargotunnel.com", &proxied, 1)
 
 		assert.ErrorIs(t, err, errno.ErrDNSRecordCreate)
@@ -403,7 +404,7 @@ func TestUpdateDNSRecord(t *testing.T) {
 			},
 		}
 
-		tunnelSvc := svc.NewSvc(credentialRepo, nil, dnsClient, log, []byte(testSecret))
+		tunnelSvc := svc.NewSvc(credentialRepo, nil, dnsClient, log, []byte(testSecret), cloudflare.NewManager(), container.Client)
 		vo, err := tunnelSvc.UpdateDNSRecord(user.ID, cred.ID, "zone-1", "dns-1", "new.example.com", "tunnel-2.cfargotunnel.com", &proxied, 1)
 
 		assert.NoError(t, err)
@@ -429,7 +430,7 @@ func TestDeleteDNSRecord(t *testing.T) {
 			},
 		}
 
-		tunnelSvc := svc.NewSvc(credentialRepo, nil, dnsClient, log, []byte(testSecret))
+		tunnelSvc := svc.NewSvc(credentialRepo, nil, dnsClient, log, []byte(testSecret), cloudflare.NewManager(), container.Client)
 		err := tunnelSvc.DeleteDNSRecord(user.ID, cred.ID, "zone-1", "dns-1")
 
 		assert.NoError(t, err)
@@ -445,7 +446,7 @@ func TestDeleteDNSRecord(t *testing.T) {
 			},
 		}
 
-		tunnelSvc := svc.NewSvc(credentialRepo, nil, dnsClient, log, []byte(testSecret))
+		tunnelSvc := svc.NewSvc(credentialRepo, nil, dnsClient, log, []byte(testSecret), cloudflare.NewManager(), container.Client)
 		err := tunnelSvc.DeleteDNSRecord(user.ID, cred.ID, "zone-1", "dns-1")
 
 		assert.ErrorIs(t, err, errno.ErrDNSRecordDelete)

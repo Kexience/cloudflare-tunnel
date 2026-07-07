@@ -23,6 +23,13 @@ func NewRouter(ctrl *ctrl.Ctrl, jwt *core.JWT) *Router {
 func (r *Router) SetupRoutes(g *gin.Engine) {
 	v1 := g.Group("/v1")
 
+	// 仪表盘统计
+	dashboard := v1.Group("/dashboard")
+	dashboard.Use(middleware.Auth(r.jwt))
+	{
+		dashboard.GET("/stats", r.ctrl.GetDashboardStats)
+	}
+
 	// 隧道管理
 	tunnels := v1.Group("/tunnels")
 	tunnels.Use(middleware.Auth(r.jwt))

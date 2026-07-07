@@ -15,16 +15,23 @@ import (
 	cf "github.com/cloudflare/cloudflare-go"
 )
 
+const baseMetricsPort = 60123
+
 type svc struct {
 	credentialRepo repo.CredentialRepo
 	tunnelClient   cloudflare.TunnelClient
 	dnsClient      cloudflare.DNSClient
 	log            logger.Logger
 	secret         []byte
+	cloudflaredMgr *cloudflare.Manager
+	metricsClient  *cloudflare.MetricsClient
+	entClient      *ent.Client
 
 	// 进程管理
-	processes map[string]*exec.Cmd
-	mu        sync.RWMutex
+	processes    map[string]*exec.Cmd
+	metricsPorts map[string]int
+	portCounter  int
+	mu           sync.RWMutex
 }
 
 // NewSvc 创建隧道管理服务（返回具体类型，由 FX 绑定接口）
@@ -34,6 +41,8 @@ func NewSvc(
 	dnsClient cloudflare.DNSClient,
 	log logger.Logger,
 	secret []byte,
+	cloudflaredMgr *cloudflare.Manager,
+	entClient *ent.Client,
 ) *svc {
 	return &svc{
 		credentialRepo: credentialRepo,
@@ -41,8 +50,20 @@ func NewSvc(
 		dnsClient:      dnsClient,
 		log:            log,
 		secret:         secret,
+		cloudflaredMgr: cloudflaredMgr,
+		metricsClient:  cloudflare.NewMetricsClient(),
+		entClient:      entClient,
 		processes:      make(map[string]*exec.Cmd),
+		metricsPorts:   make(map[string]int),
+		portCounter:    0,
 	}
+}
+
+// getNextMetricsPort 获取下一个可用的 metrics 端口
+func (s *svc) getNextMetricsPort() int {
+	port := baseMetricsPort + s.portCounter
+	s.portCounter++
+	return port
 }
 
 // getCredentialAndToken 获取凭证并解密 Token

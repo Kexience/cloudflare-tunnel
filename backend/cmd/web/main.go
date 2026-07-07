@@ -6,6 +6,7 @@ import (
 	"cloudflared-tunnel/internal/infra"
 	"cloudflared-tunnel/internal/infra/logger"
 	"cloudflared-tunnel/internal/module"
+	"cloudflared-tunnel/internal/module/tunnel/svc"
 	"context"
 	"flag"
 	"fmt"
@@ -28,7 +29,7 @@ func main() {
 	).Run()
 }
 
-func StartHttpServer(lc fx.Lifecycle, cfg *config.Config, g *gin.Engine, log logger.Logger) {
+func StartHttpServer(lc fx.Lifecycle, cfg *config.Config, g *gin.Engine, log logger.Logger, tunnelSvc svc.TunnelSvc) {
 	lc.Append(fx.Hook{
 		OnStart: func(ctx context.Context) error {
 			host := fmt.Sprintf("%s:%v", "0.0.0.0", cfg.App.Port)
@@ -37,6 +38,8 @@ func StartHttpServer(lc fx.Lifecycle, cfg *config.Config, g *gin.Engine, log log
 			return nil
 		},
 		OnStop: func(ctx context.Context) error {
+			log.Info("正在停止所有隧道...")
+			tunnelSvc.Cleanup()
 			return nil
 		},
 	})
