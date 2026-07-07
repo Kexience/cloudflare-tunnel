@@ -5,6 +5,7 @@
   import Login from './pages/Login.svelte'
   import Register from './pages/Register.svelte'
   import Dashboard from './pages/Dashboard.svelte'
+  import Config from './pages/Config.svelte'
   import ProtectedRoute from './lib/auth/ProtectedRoute.svelte'
 
   export let url = ''
@@ -36,6 +37,11 @@
     <Route path="/dashboard">
       <ProtectedRoute>
         <Dashboard />
+      </ProtectedRoute>
+    </Route>
+    <Route path="/config">
+      <ProtectedRoute>
+        <Config />
       </ProtectedRoute>
     </Route>
     <Route path="/">
