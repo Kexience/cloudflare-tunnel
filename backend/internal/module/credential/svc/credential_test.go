@@ -39,11 +39,11 @@ func TestValidateCredential(t *testing.T) {
 		assert.False(t, result.Success)
 		assert.Equal(t, "API Token 无效", result.Message)
 
-		logs, err := svc.GetTestLogs(user.ID, cred.ID)
+		log, err := svc.GetTestLogs(user.ID, cred.ID)
 		assert.NoError(t, err)
-		assert.Len(t, logs, 1)
-		assert.Equal(t, "failed", logs[0].Status)
-		assert.NotNil(t, logs[0].ErrorMessage)
-		assert.Equal(t, "API Token 无效", *logs[0].ErrorMessage)
+		assert.NotNil(t, log)
+		assert.Equal(t, "failed", log.Status)
+		assert.NotNil(t, log.ErrorMessage)
+		assert.Equal(t, "API Token 无效", *log.ErrorMessage)
 	})
 }

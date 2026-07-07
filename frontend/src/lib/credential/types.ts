@@ -1,6 +1,5 @@
 export interface ValidateCredentialRequest {
-  api_token: string
-  account_id: string
+  credential_id: number
 }
 
 export interface CredentialVO {
@@ -11,6 +10,11 @@ export interface CredentialVO {
   is_default: boolean
   created_at: string
   updated_at: string
+}
+
+export interface TestResultVO {
+  success: boolean
+  message: string
 }
 
 export interface ApiResponse<T> {

@@ -13,5 +13,5 @@ type CredentialSvc interface {
 	UpdateCredential(userID, id int64, req *v1.UpdateCredentialRequest) (*v1.CredentialVO, error)
 	DeleteCredential(userID, id int64) error
 	SetDefaultCredential(userID, id int64) (*v1.CredentialVO, error)
-	GetTestLogs(userID, credentialID int64) ([]*v1.TestLogVO, error)
+	GetTestLogs(userID, credentialID int64) (*v1.TestLogVO, error)
 }

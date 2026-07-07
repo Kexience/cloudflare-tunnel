@@ -90,10 +90,10 @@ func TestValidateCredential(t *testing.T) {
 
 		assert.Equal(t, http.StatusOK, w.Code)
 
-		logs, err := credentialSvc.GetTestLogs(user.ID, cred.ID)
+		log, err := credentialSvc.GetTestLogs(user.ID, cred.ID)
 		assert.NoError(t, err)
-		assert.Len(t, logs, 1)
-		assert.Equal(t, "failed", logs[0].Status)
+		assert.NotNil(t, log)
+		assert.Equal(t, "failed", log.Status)
 	})
 
 	t.Run("缺少必填参数", func(t *testing.T) {

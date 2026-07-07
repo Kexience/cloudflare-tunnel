@@ -206,7 +206,7 @@ func (s *svc) SetDefaultCredential(userID, id int64) (*v1.CredentialVO, error) {
 	return s.toVO(updated, decryptedToken), nil
 }
 
-func (s *svc) GetTestLogs(userID, credentialID int64) ([]*v1.TestLogVO, error) {
+func (s *svc) GetTestLogs(userID, credentialID int64) (*v1.TestLogVO, error) {
 	_, err := s.repo.GetCredentialByIDAndUserID(credentialID, userID)
 	if err != nil {
 		if ent.IsNotFound(err) {
@@ -215,22 +215,23 @@ func (s *svc) GetTestLogs(userID, credentialID int64) ([]*v1.TestLogVO, error) {
 		return nil, errno.ErrDB
 	}
 
-	logs, err := s.repo.GetTestLogsByCredentialID(credentialID, 20)
+	logs, err := s.repo.GetTestLogsByCredentialID(credentialID, 1)
 	if err != nil {
 		return nil, errno.ErrDB
 	}
 
-	vos := make([]*v1.TestLogVO, len(logs))
-	for i, l := range logs {
-		errMsg := l.ErrorMessage
-		vos[i] = &v1.TestLogVO{
-			ID:           l.ID,
-			Status:       l.Status,
-			ErrorMessage: &errMsg,
-			TestedAt:     l.TestedAt,
-		}
+	if len(logs) == 0 {
+		return nil, nil
 	}
-	return vos, nil
+
+	l := logs[0]
+	errMsg := l.ErrorMessage
+	return &v1.TestLogVO{
+		ID:           l.ID,
+		Status:       l.Status,
+		ErrorMessage: &errMsg,
+		TestedAt:     l.TestedAt,
+	}, nil
 }
 
 func (s *svc) toVO(cred *ent.Credential, apiToken string) *v1.CredentialVO {

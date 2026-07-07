@@ -138,10 +138,10 @@ func (c *Ctrl) GetTestLogs(ctx *gin.Context) {
 	}
 
 	userID := ctx.GetInt64(middleware.ContextKeyUserID)
-	vos, err := c.CredentialSvc.GetTestLogs(userID, id)
+	vo, err := c.CredentialSvc.GetTestLogs(userID, id)
 	if err != nil {
 		core.Fail(ctx, err)
 		return
 	}
-	core.OK(ctx, vos)
+	core.OK(ctx, vo)
 }

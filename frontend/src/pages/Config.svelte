@@ -125,11 +125,10 @@
     testResult = null
     try {
       const res = await validateCredential({
-        api_token: cred.api_token,
-        account_id: cred.account_id
+        credential_id: cred.id
       })
-      if (res.code === 0) {
-        testResult = { id: cred.id, success: true, message: '凭证验证成功' }
+      if (res.code === 0 && res.data) {
+        testResult = { id: cred.id, success: res.data.success, message: res.data.message }
       } else {
         testResult = { id: cred.id, success: false, message: res.message }
       }
