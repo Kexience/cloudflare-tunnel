@@ -9,7 +9,7 @@
 | `go run ./cmd/web` | 启动 web 服务 |
 | `go test ./...` | 运行测试 |
 | `go run -mod=mod entgo.io/ent/cmd/ent generate ./ent/schema` | 修改 schema 后必须执行 |
-| `go build -o bin/ ./cmd/web` | 编译到 bin/ |
+| `go build -o dist/web ./cmd/web` | 编译到 dist/ |
 
 ## 架构分层
 ```
@@ -38,5 +38,5 @@ ent/*.go                # 生成代码（禁止手动修改）
 
 ## 语言与协作
 - 所有文本使用中文（日志、错误、注释、commit message）
-- 禁止提交 bin/ 目录
+- 构建产物输出到 `dist/`，禁止提交
 - 未经确认不得 git commit/push
