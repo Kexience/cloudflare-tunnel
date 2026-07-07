@@ -26,12 +26,43 @@ func NewCredentialSvc(repo repo.CredentialRepo, log logger.Logger, secret []byte
 	}
 }
 
-func (s *svc) CreateCredential(userID int64, req *v1.CreateCredentialRequest) (*v1.CredentialVO, error) {
-	if err := s.validator.Validate(req.ApiToken, req.AccountID); err != nil {
-		s.log.Error("凭证验证失败", "error", err)
-		return nil, errno.ErrCredentialInvalid.WithMessage(err.Error())
+func (s *svc) ValidateCredential(userID int64, req *v1.ValidateCredentialRequest) (*v1.TestResultVO, error) {
+	cred, err := s.repo.GetCredentialByIDAndUserID(req.CredentialID, userID)
+	if err != nil {
+		if ent.IsNotFound(err) {
+			return nil, errno.ErrCredentialNotFound
+		}
+		return nil, errno.ErrDB
 	}
 
+	decryptedToken, err := crypto.Decrypt(cred.APIToken, s.secret)
+	if err != nil {
+		s.log.Error("解密 API Token 失败", "id", req.CredentialID, "error", err)
+		return nil, errno.ErrCredentialDecrypt
+	}
+
+	err = s.validator.Validate(decryptedToken, cred.AccountID)
+	if err != nil {
+		errMsg := err.Error()
+		if _, logErr := s.repo.CreateTestLog(req.CredentialID, "failed", &errMsg); logErr != nil {
+			s.log.Error("记录测试日志失败", "error", logErr)
+		}
+		return &v1.TestResultVO{
+			Success: false,
+			Message: errMsg,
+		}, nil
+	}
+
+	if _, logErr := s.repo.CreateTestLog(req.CredentialID, "success", nil); logErr != nil {
+		s.log.Error("记录测试日志失败", "error", logErr)
+	}
+	return &v1.TestResultVO{
+		Success: true,
+		Message: "凭证验证成功",
+	}, nil
+}
+
+func (s *svc) CreateCredential(userID int64, req *v1.CreateCredentialRequest) (*v1.CredentialVO, error) {
 	encryptedToken, err := crypto.Encrypt(req.ApiToken, s.secret)
 	if err != nil {
 		s.log.Error("加密 API Token 失败", "error", err)
@@ -116,11 +147,6 @@ func (s *svc) UpdateCredential(userID, id int64, req *v1.UpdateCredentialRequest
 		return nil, errno.ErrDB
 	}
 
-	if err := s.validator.Validate(req.ApiToken, req.AccountID); err != nil {
-		s.log.Error("凭证验证失败", "error", err)
-		return nil, errno.ErrCredentialInvalid.WithMessage(err.Error())
-	}
-
 	encryptedToken, err := crypto.Encrypt(req.ApiToken, s.secret)
 	if err != nil {
 		s.log.Error("加密 API Token 失败", "error", err)
@@ -178,6 +204,33 @@ func (s *svc) SetDefaultCredential(userID, id int64) (*v1.CredentialVO, error) {
 	}
 
 	return s.toVO(updated, decryptedToken), nil
+}
+
+func (s *svc) GetTestLogs(userID, credentialID int64) ([]*v1.TestLogVO, error) {
+	_, err := s.repo.GetCredentialByIDAndUserID(credentialID, userID)
+	if err != nil {
+		if ent.IsNotFound(err) {
+			return nil, errno.ErrCredentialNotFound
+		}
+		return nil, errno.ErrDB
+	}
+
+	logs, err := s.repo.GetTestLogsByCredentialID(credentialID, 20)
+	if err != nil {
+		return nil, errno.ErrDB
+	}
+
+	vos := make([]*v1.TestLogVO, len(logs))
+	for i, l := range logs {
+		errMsg := l.ErrorMessage
+		vos[i] = &v1.TestLogVO{
+			ID:           l.ID,
+			Status:       l.Status,
+			ErrorMessage: &errMsg,
+			TestedAt:     l.TestedAt,
+		}
+	}
+	return vos, nil
 }
 
 func (s *svc) toVO(cred *ent.Credential, apiToken string) *v1.CredentialVO {
