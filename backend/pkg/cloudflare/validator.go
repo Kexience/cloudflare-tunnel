@@ -20,19 +20,18 @@ func NewValidator() Validator {
 func (v *validator) Validate(apiToken, accountID string) error {
 	client, err := cf.NewWithAPIToken(apiToken)
 	if err != nil {
-		return fmt.Errorf("创建 Cloudflare 客户端失败: %w", err)
+		return fmt.Errorf("创建 Cloudflare 客户端失败")
 	}
 
 	ctx := context.Background()
 
-	_, err = client.UserDetails(ctx)
+	tokenInfo, err := client.VerifyAPIToken(ctx)
 	if err != nil {
-		return fmt.Errorf("API Token 无效: %w", err)
+		return fmt.Errorf("API Token 无效")
 	}
 
-	_, _, err = client.Account(ctx, accountID)
-	if err != nil {
-		return fmt.Errorf("账号 ID 无效或无权访问: %w", err)
+	if tokenInfo.Status != "active" {
+		return fmt.Errorf("API Token 状态异常: %s", tokenInfo.Status)
 	}
 
 	return nil

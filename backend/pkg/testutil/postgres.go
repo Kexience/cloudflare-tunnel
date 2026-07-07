@@ -7,11 +7,21 @@ import (
 	"time"
 
 	"cloudflared-tunnel/ent"
+	"cloudflared-tunnel/internal/infra/logger"
 
 	"github.com/testcontainers/testcontainers-go"
 	"github.com/testcontainers/testcontainers-go/wait"
 	_ "github.com/lib/pq"
 )
+
+func NewLogger(t *testing.T) logger.Logger {
+	t.Helper()
+	log, err := logger.NewLoggerForTest()
+	if err != nil {
+		t.Fatalf("创建日志失败: %v", err)
+	}
+	return log
+}
 
 type PostgresContainer struct {
 	Container testcontainers.Container
@@ -72,4 +82,35 @@ func NewPostgresContainer(t *testing.T) *PostgresContainer {
 		Container: container,
 		Client:    client,
 	}
+}
+
+func (p *PostgresContainer) InsertUser(t *testing.T, nickname, username, password, email string) *ent.User {
+	t.Helper()
+	ctx := context.Background()
+	u, err := p.Client.User.Create().
+		SetNickname(nickname).
+		SetUsername(username).
+		SetPassword(password).
+		SetEmail(email).
+		Save(ctx)
+	if err != nil {
+		t.Fatalf("插入用户失败: %v", err)
+	}
+	return u
+}
+
+func (p *PostgresContainer) InsertCredential(t *testing.T, userID int64, name, apiToken, accountID string, isDefault bool) *ent.Credential {
+	t.Helper()
+	ctx := context.Background()
+	c, err := p.Client.Credential.Create().
+		SetName(name).
+		SetAPIToken(apiToken).
+		SetAccountID(accountID).
+		SetIsDefault(isDefault).
+		SetOwnerID(userID).
+		Save(ctx)
+	if err != nil {
+		t.Fatalf("插入凭证失败: %v", err)
+	}
+	return c
 }
