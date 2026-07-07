@@ -5,6 +5,7 @@
   import { authStore } from '../lib/auth/store'
   import type { Credential, CreateCredentialRequest } from '../lib/config/types'
   import * as configApi from '../lib/config/api'
+  import { validateCredential } from '../lib/credential'
 
   let credentials: Credential[] = $state([])
   let isLoading = $state(true)
@@ -13,6 +14,8 @@
   let editingId = $state<number | null>(null)
   let saving = $state(false)
   let deletingId = $state<number | null>(null)
+  let testingId = $state<number | null>(null)
+  let testResult = $state<{ id: number; success: boolean; message: string } | null>(null)
 
   let formData: CreateCredentialRequest = $state({
     name: '',
@@ -114,6 +117,26 @@
       await loadCredentials()
     } catch (e: unknown) {
       error = e instanceof Error ? e.message : '设置失败'
+    }
+  }
+
+  async function handleTestCredential(cred: Credential) {
+    testingId = cred.id
+    testResult = null
+    try {
+      const res = await validateCredential({
+        api_token: cred.api_token,
+        account_id: cred.account_id
+      })
+      if (res.code === 0) {
+        testResult = { id: cred.id, success: true, message: '凭证验证成功' }
+      } else {
+        testResult = { id: cred.id, success: false, message: res.message }
+      }
+    } catch (e: unknown) {
+      testResult = { id: cred.id, success: false, message: e instanceof Error ? e.message : '验证失败' }
+    } finally {
+      testingId = null
     }
   }
 
@@ -261,6 +284,22 @@
                     <span>创建于 {new Date(cred.created_at).toLocaleDateString('zh-CN')}</span>
                   </div>
                 </div>
+
+                {#if testResult && testResult.id === cred.id}
+                  <div class="mt-3 ml-13 {testResult.success ? 'bg-green-50 border-green-200' : 'bg-red-50 border-red-200'} border rounded-lg p-3 flex items-center">
+                    {#if testResult.success}
+                      <svg class="w-4 h-4 text-green-500 mr-2 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                      </svg>
+                      <span class="text-green-700 text-sm">{testResult.message}</span>
+                    {:else}
+                      <svg class="w-4 h-4 text-red-500 mr-2 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                      </svg>
+                      <span class="text-red-700 text-sm">{testResult.message}</span>
+                    {/if}
+                  </div>
+                {/if}
               </div>
 
               <div class="flex items-center space-x-2 ml-4 flex-shrink-0">
@@ -272,6 +311,24 @@
                     设为默认
                   </button>
                 {/if}
+                <button
+                  onclick={() => handleTestCredential(cred)}
+                  disabled={testingId === cred.id}
+                  class="px-3 py-1.5 text-xs font-medium text-green-600 bg-green-50 rounded-lg hover:bg-green-100 transition duration-200 disabled:opacity-50"
+                  title="测试凭证"
+                >
+                  {#if testingId === cred.id}
+                    <span class="inline-flex items-center">
+                      <svg class="animate-spin -ml-0.5 mr-1 h-3 w-3 text-green-600" fill="none" viewBox="0 0 24 24">
+                        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                      </svg>
+                      测试中
+                    </span>
+                  {:else}
+                    测试
+                  {/if}
+                </button>
                 <button
                   onclick={() => openEdit(cred)}
                   class="p-2 text-gray-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition duration-200"
