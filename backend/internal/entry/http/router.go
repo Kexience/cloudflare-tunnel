@@ -2,13 +2,14 @@ package http
 
 import (
 	"cloudflared-tunnel/internal/config"
-	"cloudflared-tunnel/internal/module/user/ui/api"
+	credentialApi "cloudflared-tunnel/internal/module/credential/ui/api"
+	userApi "cloudflared-tunnel/internal/module/user/ui/api"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
 )
 
-func NewRouter(cfg *config.Config, userRepo *api.Router) *gin.Engine {
+func NewRouter(cfg *config.Config, userRouter *userApi.Router, credentialRouter *credentialApi.Router) *gin.Engine {
 	if cfg.App.Env == "dev" {
 		gin.ForceConsoleColor()
 		gin.SetMode(gin.DebugMode)
@@ -20,7 +21,8 @@ func NewRouter(cfg *config.Config, userRepo *api.Router) *gin.Engine {
 		c.String(http.StatusOK, "ok")
 	})
 
-	userRepo.SetupRoutes(r)
+	userRouter.SetupRoutes(r)
+	credentialRouter.SetupRoutes(r)
 
 	return r
 }

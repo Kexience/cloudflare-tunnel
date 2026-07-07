@@ -1,6 +1,7 @@
 package module
 
 import (
+	"cloudflared-tunnel/internal/module/credential"
 	"cloudflared-tunnel/internal/module/user"
 
 	"go.uber.org/fx"
@@ -9,4 +10,5 @@ import (
 var Module = fx.Module(
 	"Module",
 	user.Module,
+	credential.Module,
 )
